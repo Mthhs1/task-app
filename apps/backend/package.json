@@ -4,8 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc"
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "build": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "NODE_TLS_REJECT_UNAUTHORIZED=0 drizzle-kit migrate",
+    "db:push": "NODE_TLS_REJECT_UNAUTHORIZED=0 drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +20,7 @@
     "@fastify/websocket": "^11.2.0",
     "@meu-projeto/types": "workspace:*",
     "better-auth": "^1.6.20",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.8.5",
     "postgres": "^3.4.9",
