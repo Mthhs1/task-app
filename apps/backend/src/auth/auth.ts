@@ -1,0 +1,18 @@
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { organization } from "better-auth/plugins/organization";
+import { db } from "../db/client";
+import { env } from "../env";
+
+export const auth = betterAuth({
+  trustedOrigins: [env.CORS_ORIGIN],
+  database: drizzleAdapter(db, { provider: "pg" }),
+  plugins: [organization()],
+  emailAndPassword: { enabled: true },
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+    },
+  },
+});
