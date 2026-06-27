@@ -1,42 +1,114 @@
-import { type FastifyRequest, type FastifyReply } from "fastify";
-import { auth } from "../auth/auth";
+import { type FastifyRequest, type FastifyReply } from "fastify"
+import { auth } from "../auth/auth"
+import { fromNodeHeaders } from "better-auth/node"
 
-export async function authHandler(request: FastifyRequest, reply: FastifyReply) {
-  const url = new URL(request.url, `${request.protocol}://${request.hostname}`);
-
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value) {
-      if (typeof value === "string") {
-        headers.set(key, value);
-      } else if (Array.isArray(value)) {
-        headers.set(key, value.join(", "));
-      }
+async function forwardResponse(reply: FastifyReply, res: Response) {
+    reply.code(res.status)
+    res.headers.forEach((value, key) => reply.header(key, value))
+    const text = await res.text()
+    try {
+        return JSON.parse(text)
+    } catch {
+        return text
     }
-  }
+}
 
-  const body =
-    request.method !== "GET" && request.method !== "HEAD" && request.body
-      ? JSON.stringify(request.body)
-      : undefined;
+export async function signInEmail(
+    request: FastifyRequest,
+    reply: FastifyReply,
+) {
+    const { email, password } = request.body as {
+        email: string
+        password: string
+    }
+    const res = await auth.api.signInEmail({
+        body: { email, password },
+        headers: fromNodeHeaders(request.headers),
+        asResponse: true,
+    })
+    return forwardResponse(reply, res)
+}
 
-  const betterReq = new Request(url.toString(), {
-    method: request.method,
-    headers,
-    body,
-  });
+export async function signUpEmail(
+    request: FastifyRequest,
+    reply: FastifyReply,
+) {
+    const { name, email, password } = request.body as {
+        name: string
+        email: string
+        password: string
+    }
+    const res = await auth.api.signUpEmail({
+        body: { name, email, password },
+        headers: fromNodeHeaders(request.headers),
+        asResponse: true,
+    })
+    return forwardResponse(reply, res)
+}
 
-  const betterRes = await auth.handler(betterReq);
+export async function signInSocial(
+    request: FastifyRequest,
+    reply: FastifyReply,
+) {
+    const { provider, callbackURL } = request.body as {
+        provider: string
+        callbackURL: string
+    }
+    const res = await auth.api.signInSocial({
+        body: { provider, callbackURL },
+        headers: fromNodeHeaders(request.headers),
+        asResponse: true,
+    })
 
-  reply.code(betterRes.status);
-  betterRes.headers.forEach((value, key) => {
-    reply.header(key, value);
-  });
+    return forwardResponse(reply, res)
+}
 
-  const text = await betterRes.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
+export async function logout(request: FastifyRequest, reply: FastifyReply) {
+    const headers = fromNodeHeaders(request.headers)
+
+    // Explicitly revoke the session from the database before signing out
+    const session = await auth.api.getSession({ headers })
+    if (session?.session?.token) {
+        await auth.api.revokeSession({
+            headers,
+            body: { token: session.session.token },
+        })
+    }
+
+    const res = await auth.api.signOut({
+        headers,
+        asResponse: true,
+    })
+
+    return forwardResponse(reply, res)
+}
+
+export async function getSession(request: FastifyRequest, reply: FastifyReply) {
+    const res = await auth.api.getSession({
+        headers: fromNodeHeaders(request.headers),
+        asResponse: true,
+    })
+    return forwardResponse(reply, res)
+}
+
+export async function authDispatcher(
+    request: FastifyRequest,
+    reply: FastifyReply,
+) {
+    const { action } = request.body as { action: string }
+
+    switch (action) {
+        case "sign-in-email":
+            return signInEmail(request, reply)
+        case "sign-up-email":
+            return signUpEmail(request, reply)
+        case "sign-in-social":
+            return signInSocial(request, reply)
+        case "logout":
+            return logout(request, reply)
+        default:
+            return reply
+                .status(400)
+                .send({ message: `Invalid action: ${action}` })
+    }
 }

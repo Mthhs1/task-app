@@ -17,9 +17,16 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (pathname === "/") {
+    if (session) {
+      return NextResponse.redirect(new URL("/dashboard", request.url))
+    }
+    return NextResponse.next()
+  }
+
   if (isAuthPage) {
     if (session) {
-      return NextResponse.redirect(new URL("/", request.url))
+      return NextResponse.redirect(new URL("/dashboard", request.url))
     }
     return NextResponse.next()
   }

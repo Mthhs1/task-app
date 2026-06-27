@@ -75,65 +75,69 @@ apps/frontend/
     (auth)/
       login/page.tsx
       signup/page.tsx
-    (app)/
+    dashboard/
       layout.tsx              # auth-guarded shell (sidebar + header)
-      page.tsx                # redirect to first org or /groups
-      groups/page.tsx         # list/create organizations
+      page.tsx                # dashboard home / overview
+      groups/page.tsx         # list/create organizations (planned)
       [groupId]/
-        layout.tsx            # org context provider
-        tasks/page.tsx        # task board (list/kanban/calendar)
-        milestones/page.tsx
-        time-stats/page.tsx   # optional
-        settings/page.tsx     # optional
-      error.tsx
-    proxy.ts                  # route protection (Next.js 16 middleware renamed)
-  src/
-    lib/
-      auth-client.ts          # better-auth client init
-      api.ts                  # fetch wrapper (baseURL, credentials, typed methods)
-      ws.ts                   # websocket singleton (connect, reconnect, dispatch)
-      format.ts              # formatDuration, formatDate, formatRelativeTime, formatTimeRemaining
-      constants.ts           # priority/status/frequency labels + colors
-      mention.ts             # parseMentions(text) — extract @usernames
-    store/
-      auth-store.ts           # current user session
-      org-store.ts            # organizations list, active org
-      tasks-store.ts          # tasks[], filters, add/update/remove/reconcile, optimistic mutations
-    components/
-      providers.tsx           # wrap app with auth provider
-      auth-form.tsx
-      header.tsx
-      sidebar.tsx
-      group-switcher.tsx
-      user-menu.tsx
-      notification-badge.tsx
-      notifications/
-        notification-dropdown.tsx
-      tasks/
-        task-board.tsx
-        task-list.tsx
-        task-card.tsx
-        task-dialog.tsx
-        task-filters.tsx
-        task-kanban.tsx
-        kanban-column.tsx
-        task-calendar.tsx
-        calendar-event.tsx
-        subtask-list.tsx
-        subtask-add.tsx
-        recurrence-dialog.tsx
-        time-entry-dialog.tsx
-        time-remaining.tsx
-        time-entries-list.tsx
-        tag-picker.tsx
-        comment-thread.tsx
-        comment-input.tsx
-        comment-item.tsx
-      milestones/
-        milestone-card.tsx
-        milestone-dialog.tsx
-      settings/
-        tag-manager.tsx
+        layout.tsx            # org context provider (planned)
+        tasks/page.tsx        # task board (planned)
+        milestones/page.tsx   # planned
+        time-stats/page.tsx   # optional (planned)
+        settings/page.tsx     # optional (planned)
+    api/
+      auth/login/route.ts     # server-side proxy to backend
+      auth/signup/route.ts
+      auth/logout/route.ts
+    page.tsx                  # public landing page
+    error.tsx                 # planned
+    proxy.ts                  # route protection middleware
+  lib/
+    auth-client.ts            # better-auth client init
+    api.ts                    # fetch wrapper (planned)
+    ws.ts                     # websocket singleton (planned)
+    format.ts                 # planned
+    constants.ts              # planned
+    mention.ts                # planned
+  store/
+    auth-store.ts             # zustand: current user + session
+    org-store.ts              # planned
+  components/
+    providers.tsx             # wrap app with auth provider
+    auth-form.tsx
+    landing-header.tsx
+    dashboard-sidebar.tsx
+    dashboard-header.tsx
+    group-switcher.tsx        # planned
+    user-menu.tsx             # planned
+    notification-badge.tsx    # planned
+    notifications/
+      notification-dropdown.tsx  # planned
+    tasks/
+      task-board.tsx          # planned
+      task-list.tsx           # planned
+      task-card.tsx           # planned
+      task-dialog.tsx         # planned
+      task-filters.tsx        # planned
+      task-kanban.tsx         # planned
+      kanban-column.tsx       # planned
+      task-calendar.tsx       # planned
+      calendar-event.tsx      # planned
+      subtask-list.tsx        # planned
+      subtask-add.tsx         # planned
+      recurrence-dialog.tsx   # planned
+      time-entry-dialog.tsx   # planned
+      time-remaining.tsx      # planned
+      time-entries-list.tsx   # planned
+      tag-picker.tsx          # planned
+      comment-thread.tsx      # planned
+      comment-input.tsx       # planned
+      comment-item.tsx        # planned
+    milestones/
+      milestone-card.tsx      # planned
+      milestone-dialog.tsx    # planned
+    settings/
+      tag-manager.tsx         # planned
 ```
 
 ## Additional Shadcn Components Needed
@@ -166,13 +170,14 @@ apps/frontend/
 
 ```
 app/
+  page.tsx                      # Step 5 — public landing page
   (auth)/
     login/page.tsx              # Step 4
     signup/page.tsx             # Step 4
-  (app)/
+  dashboard/
     layout.tsx                  # Step 5 — auth shell
-    page.tsx                    # Step 5 — redirect to first org
-    groups/page.tsx             # Step 5 — list/create orgs
+    page.tsx                    # Step 5 — dashboard home/overview
+    groups/page.tsx             # Step 6 — list/create orgs
     [groupId]/
       layout.tsx                # Step 8 — org context
       tasks/page.tsx            # Step 8 — task board (list/kanban/calendar)
@@ -265,30 +270,35 @@ Expand `src/index.ts` with all Zod schemas + inferred TS types:
 
 ---
 
-### Step 5: Frontend Shell + Organization Management
+### Step 5: Landing Page + Dashboard Shell + Auth Store
 
 **Pages:**
 
-- `app/(app)/layout.tsx` — auth-guarded shell (sidebar + header)
-- `app/(app)/page.tsx` — redirect to first org or `/groups`
-- `app/(app)/groups/page.tsx` — list/create organizations
+- `app/page.tsx` — public landing page (hero, demo mockup, features)
+- `app/dashboard/layout.tsx` — auth-guarded shell (sidebar + header)
+- `app/dashboard/page.tsx` — dashboard welcome / overview
+- `app/dashboard/groups/page.tsx` — list/create organizations (planned)
 
 **Components:**
 
-- `src/components/group-switcher.tsx` — dropdown to switch active org
-- `src/components/user-menu.tsx` — avatar dropdown (profile, logout)
-- `src/components/sidebar.tsx` — nav links (Tasks, Milestones, Members, Settings)
-- `src/components/header.tsx` — top bar with group switcher + notifications bell
-- `src/components/notification-badge.tsx`
+- `components/landing-header.tsx` — landing page navbar (Home, About, Contact Us + Sign In/Up)
+- `components/dashboard-sidebar.tsx` — nav links (Overview, Groups, Tasks, Calendar, Settings) + user info + logout
+- `components/dashboard-header.tsx` — top bar with mobile sheet trigger + notification bell
+- `components/group-switcher.tsx` — dropdown to switch active org (planned)
+- `components/user-menu.tsx` — avatar dropdown (profile, logout) (planned)
+- `components/notification-badge.tsx` (planned)
 
 **Store:**
 
-- `src/store/auth-store.ts` — current user session
-- `src/store/org-store.ts` — organizations list, active org
+- `store/auth-store.ts` — zustand store: current user, session, loading state, fetchSession, clearSession
+
+**Middleware:**
+
+- `proxy.ts` — `/` is public (redirects to `/dashboard` if logged in); `/dashboard/*` is protected (redirects to `/login` if not); auth pages redirect to `/dashboard` when authenticated
 
 **Additional Shadcn:** `sheet` (mobile sidebar), `tooltip`, `scroll-area`, `skeleton`
 
-**Verify:** create org, switch org, see members, logout works.
+**Verify:** landing page loads publicly, signup/login flow -> redirected to dashboard -> sidebar shows user info -> logout works.
 
 ---
 
