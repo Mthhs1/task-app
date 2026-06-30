@@ -10,6 +10,7 @@ if (!connectionUrl.searchParams.has('sslmode')) {
 }
 
 const client = postgres(connectionUrl.toString(), {
+  ssl: { rejectUnauthorized: false },
   max: 10,
   idle_timeout: 20,
   connect_timeout: 10,
