@@ -94,7 +94,7 @@
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
@@ -186,7 +186,7 @@
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
@@ -211,8 +211,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user": {
-      "name": "user",
+    "public.users": {
+      "name": "users",
       "schema": "",
       "columns": {
         "id": {
@@ -265,8 +265,8 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "user_email_unique": {
-          "name": "user_email_unique",
+        "users_email_unique": {
+          "name": "users_email_unique",
           "nullsNotDistinct": false,
           "columns": [
             "email"
@@ -400,7 +400,7 @@
         "invitation_inviter_id_user_id_fk": {
           "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "inviter_id"
           ],
@@ -471,7 +471,7 @@
         "member_user_id_user_id_fk": {
           "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
@@ -991,7 +991,7 @@
         "tasks_assignee_id_user_id_fk": {
           "name": "tasks_assignee_id_user_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "assignee_id"
           ],
@@ -1017,7 +1017,7 @@
         "tasks_created_by_id_user_id_fk": {
           "name": "tasks_created_by_id_user_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "created_by_id"
           ],
@@ -1096,7 +1096,7 @@
         "comments_user_id_user_id_fk": {
           "name": "comments_user_id_user_id_fk",
           "tableFrom": "comments",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1162,7 +1162,7 @@
         "mentions_user_id_user_id_fk": {
           "name": "mentions_user_id_user_id_fk",
           "tableFrom": "mentions",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1240,7 +1240,7 @@
         "notifications_user_id_user_id_fk": {
           "name": "notifications_user_id_user_id_fk",
           "tableFrom": "notifications",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1369,7 +1369,7 @@
         "time_entries_user_id_user_id_fk": {
           "name": "time_entries_user_id_user_id_fk",
           "tableFrom": "time_entries",
-          "tableTo": "user",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
