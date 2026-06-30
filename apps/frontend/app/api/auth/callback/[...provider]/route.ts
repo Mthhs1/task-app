@@ -2,17 +2,17 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-const ORIGIN = "http://localhost:3000"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ provider: string[] }> }) {
   const { provider } = await params
   const providerPath = provider.join("/")
   const search = request.nextUrl.search
   const cookie = request.headers.get("cookie") || ""
+  const origin = request.nextUrl.origin
 
   const res = await fetch(`${BACKEND_URL}/api/auth/callback/${providerPath}${search}`, {
     headers: {
-      Origin: ORIGIN,
+      Origin: origin,
       ...(cookie ? { cookie } : {}),
     },
     redirect: "manual",
