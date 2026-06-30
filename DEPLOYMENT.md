@@ -52,41 +52,81 @@ Set these in your Vercel project dashboard under **Settings > Environment Variab
 
 ## Step 1: Deploy the Backend to Railway
 
+### Why We Build from the Monorepo Root
+
+This project is a **pnpm monorepo** with workspace packages in `packages/*` (e.g., `@meu-projeto/types`). Both the frontend and backend import from `packages/types/` for shared Zod schemas and validation.
+
+If Railway builds from `apps/backend/` in isolation, it cannot resolve `"@meu-projeto/types": "workspace:*"` because the `packages/` folder is outside the build context.
+
+**The solution**: Build from the **repo root** (`.`) so pnpm sees `pnpm-workspace.yaml`, installs all workspace packages, and symlinks them correctly. Then use pnpm filters to **only build and start the backend**.
+
+---
+
 ### 1.1 Create a Railway Project
 
 1. Go to [railway.app](https://railway.app) and log in.
 2. Click **New Project** → **Deploy from GitHub repo**.
 3. Select your repository.
-4. Railway will auto-detect the project. Set the **Root Directory** to `apps/backend`.
 
-### 1.2 Configure Build & Start Commands
+### 1.2 Configure the Service
 
-In Railway, go to your service settings and set:
+After Railway creates the service, go to the service **Settings** tab and configure:
 
-| Setting | Value |
-|---------|-------|
-| **Build Command** | `pnpm build` |
-| **Start Command** | `pnpm start` |
+| Setting | Value | Why |
+|---------|-------|-----|
+| **Root Directory** | `.` | Builds from the repo root so pnpm can resolve workspace packages |
+| **Build Command** | `pnpm install && pnpm --filter backend build` | Installs ALL monorepo deps, then compiles only the backend |
+| **Start Command** | `pnpm --filter backend start` | Starts only the backend app |
 
-Or if Railway auto-detects:
-- Build: `tsc`
-- Start: `node dist/index.js`
+> **What `pnpm --filter backend` does**: It runs the command in the `apps/backend` package only, ignoring the frontend and other apps.
 
-### 1.3 Add Environment Variables
+### 1.3 The `railway.toml` File
 
-Add all the backend variables listed above in the Railway dashboard.
+A `railway.toml` file at the repo root tells Railway to use these settings automatically:
 
-### 1.4 Deploy
+```toml
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "pnpm --filter backend start"
+```
+
+This is already in your repo. Railway will auto-detect it.
+
+### 1.4 How Workspace Packages Work on Railway
+
+When Railway runs `pnpm install` from the root:
+
+1. pnpm reads `pnpm-workspace.yaml` and finds `apps/*` and `packages/*`
+2. It installs dependencies for ALL workspace packages
+3. It creates symlinks in `node_modules/@meu-projeto/types` → `packages/types/`
+4. The backend can now import `"@meu-projeto/types"` just like it does locally
+
+### 1.5 Add Environment Variables
+
+Add all the backend variables listed above in the Railway dashboard under **Variables**.
+
+### 1.6 Deploy
 
 Click **Deploy**. Railway will build and start your backend.
 
 Once deployed, copy the **public domain** (e.g., `https://task-app-api.up.railway.app`). You will need it for the frontend.
 
-### 1.5 Run Database Migrations
+### 1.7 Run Database Migrations
 
 After the backend is deployed, you need to run Drizzle migrations to set up the database tables.
 
-**Option A: Railway CLI (Recommended)**
+**Option A: Railway Console (Easiest)**
+
+1. Go to your Railway project dashboard.
+2. Click on your service → **Console** tab.
+3. Run:
+   ```bash
+   pnpm --filter backend db:migrate
+   ```
+
+**Option B: Railway CLI**
 
 ```bash
 # Install Railway CLI if you haven't
@@ -97,23 +137,7 @@ railway login
 railway link
 
 # Run migrations
-railway run -- pnpm db:migrate
-```
-
-**Option B: Railway Console**
-
-1. Go to your Railway project dashboard.
-2. Click on your service → **Console** tab.
-3. Run:
-   ```bash
-   pnpm db:migrate
-   ```
-
-**Option C: Local with Railway connection**
-
-```bash
-# In apps/backend/
-railway run -- pnpm db:migrate
+railway run -- pnpm --filter backend db:migrate
 ```
 
 ---
@@ -201,6 +225,25 @@ The `BETTER_AUTH_URL` env var tells Better Auth its own public URL. This is used
 ---
 
 ## Troubleshooting
+
+### Railway crash: "workspace package not found" or "@meu-projeto/types" import error
+
+**Cause**: Railway built from `apps/backend/` in isolation and couldn't resolve the workspace package `"@meu-projeto/types"`.
+
+**Fix**:
+1. Go to your Railway service **Settings**.
+2. Set **Root Directory** to `.` (repo root).
+3. Set **Build Command** to `pnpm install && pnpm --filter backend build`.
+4. Set **Start Command** to `pnpm --filter backend start`.
+5. Redeploy.
+
+Building from the root ensures pnpm sees `pnpm-workspace.yaml` and installs all workspace dependencies.
+
+### Railway tries to build the frontend
+
+**Cause**: Railway auto-detected `turbo.json` and ran `turbo build`, which tries to build ALL apps including the frontend.
+
+**Fix**: The `pnpm --filter backend` prefix ensures only the backend app is built and started. Verify your settings match the table in Step 1.2.
 
 ### "Unauthorized" or 401 errors after login
 

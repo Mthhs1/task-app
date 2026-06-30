@@ -21,7 +21,6 @@
     "@fastify/websocket": "^11.2.0",
     "@meu-projeto/types": "workspace:*",
     "better-auth": "^1.6.20",
-    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.8.5",
     "postgres": "^3.4.9",
