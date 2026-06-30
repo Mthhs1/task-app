@@ -3,8 +3,13 @@ import postgres from 'postgres';
 import { env } from '../env.js';
 import * as schema from './schema/index.js';
 
-const client = postgres(env.DATABASE_URL, {
-  ssl: { rejectUnauthorized: false },
+const connectionUrl = new URL(env.DATABASE_URL)
+// Ensure sslmode=require for Supabase direct connections
+if (!connectionUrl.searchParams.has('sslmode')) {
+  connectionUrl.searchParams.set('sslmode', 'require')
+}
+
+const client = postgres(connectionUrl.toString(), {
   max: 10,
   idle_timeout: 20,
   connect_timeout: 10,
