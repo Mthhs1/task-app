@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node --dns-result-order=ipv4first dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "NODE_TLS_REJECT_UNAUTHORIZED=0 drizzle-kit migrate",
     "db:push": "NODE_TLS_REJECT_UNAUTHORIZED=0 drizzle-kit push",

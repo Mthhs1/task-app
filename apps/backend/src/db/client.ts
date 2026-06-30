@@ -15,9 +15,6 @@ const client = postgres(connectionUrl.toString(), {
   idle_timeout: 20,
   connect_timeout: 10,
   prepare: false, // Required for Supabase connection pooler (PgBouncer)
-  socket: {
-    family: 4, // Force IPv4 to avoid ENETUNREACH on IPv6
-  },
 });
 
 export const db = drizzle(client, { schema });
