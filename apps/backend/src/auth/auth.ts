@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins/organization";
-import { db } from "../db/client";
-import { env } from "../env";
+import { db } from "../db/client.js";
+import { env } from "../env.js";
 
 export const auth = betterAuth({
   trustedOrigins: [env.CORS_ORIGIN],

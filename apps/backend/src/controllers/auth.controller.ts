@@ -1,5 +1,5 @@
 import { type FastifyRequest, type FastifyReply } from "fastify"
-import { auth } from "../auth/auth"
+import { auth } from "../auth/auth.js"
 import { fromNodeHeaders } from "better-auth/node"
 
 async function forwardResponse(reply: FastifyReply, res: Response) {

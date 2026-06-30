@@ -1,6 +1,6 @@
 import { type FastifyRequest, type FastifyReply } from "fastify";
-import { db } from "../db/client";
-import { member } from "../db/schema/organization";
+import { db } from "../db/client.js";
+import { member } from "../db/schema/organization.js";
 import { eq, and } from "drizzle-orm";
 
 export async function requireOrgMember(request: FastifyRequest, reply: FastifyReply) {

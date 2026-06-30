@@ -1,6 +1,6 @@
 import { type FastifyInstance, type FastifyRequest, type FastifyReply } from "fastify";
-import { authDispatcher, getSession } from "../controllers/auth.controller";
-import { auth } from "../auth/auth";
+import { authDispatcher, getSession } from "../controllers/auth.controller.js";
+import { auth } from "../auth/auth.js";
 import { fromNodeHeaders } from "better-auth/node";
 
 export async function authRoutes(app: FastifyInstance) {
