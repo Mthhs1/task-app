@@ -14,13 +14,21 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  const data = await res.json()
-
-  const response = NextResponse.json(data, { status: res.status })
+  const text = await res.text()
   const cookies = res.headers.getSetCookie()
-  for (const cookie of cookies) {
-    response.headers.append("Set-Cookie", cookie)
-  }
 
-  return response
+  try {
+    const data = JSON.parse(text)
+    const response = NextResponse.json(data, { status: res.status })
+    for (const cookie of cookies) {
+      response.headers.append("Set-Cookie", cookie)
+    }
+    return response
+  } catch {
+    const response = new NextResponse(text, { status: res.status })
+    for (const cookie of cookies) {
+      response.headers.append("Set-Cookie", cookie)
+    }
+    return response
+  }
 }

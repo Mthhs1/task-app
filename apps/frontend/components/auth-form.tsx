@@ -57,11 +57,14 @@ export function AuthForm({ mode }: AuthFormProps) {
         })
 
         if (!res.ok) {
-            const json = await res.json()
-            const message =
-                json.error?.message ||
-                json.message ||
-                "Ocorreu um erro inesperado"
+            let message = "Ocorreu um erro inesperado"
+            try {
+                const json = await res.json()
+                message = json.error?.message || json.message || message
+            } catch {
+                const text = await res.text()
+                message = text || message
+            }
             setError("root", { message })
             return
         }
