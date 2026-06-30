@@ -1,8 +1,8 @@
 import { pgTable, uuid, text, timestamp, integer, varchar, pgEnum } from "drizzle-orm/pg-core";
 import { primaryKey } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
-import { organization } from "./organization";
-import { user } from "./auth";
+import { organization } from "./organization.js";
+import { user } from "./auth.js";
 
 export const priorityEnum = pgEnum("priority", ["low", "medium", "high", "urgent"]);
 export const taskStatusEnum = pgEnum("task_status", ["todo", "in_progress", "done", "archived"]);

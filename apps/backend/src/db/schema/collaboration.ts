@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, timestamp, integer, pgEnum } from "drizzle-orm/pg-core";
-import { tasks } from "./tasks";
-import { user } from "./auth";
-import { organization } from "./organization";
+import { tasks } from "./tasks.js";
+import { user } from "./auth.js";
+import { organization } from "./organization.js";
 
 export const notificationTypeEnum = pgEnum("notification_type", [
   "mention",

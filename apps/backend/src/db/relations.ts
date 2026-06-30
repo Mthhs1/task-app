@@ -1,8 +1,8 @@
 import { relations } from "drizzle-orm";
-import { user, session, account } from "./schema/auth";
-import { organization, member, invitation } from "./schema/organization";
-import { tasks, recurrenceRules, tags, taskTags, milestones } from "./schema/tasks";
-import { comments, mentions, timeEntries, notifications } from "./schema/collaboration";
+import { user, session, account } from "./schema/auth.js";
+import { organization, member, invitation } from "./schema/organization.js";
+import { tasks, recurrenceRules, tags, taskTags, milestones } from "./schema/tasks.js";
+import { comments, mentions, timeEntries, notifications } from "./schema/collaboration.js";
 
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
