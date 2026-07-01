@@ -1,8 +1,5 @@
 [build]
-builder = "nixpacks"
+builder = "dockerfile"
 
 [deploy]
 startCommand = "pnpm --filter backend start"
-
-[env]
-NIXPACKS_NODE_VERSION = "20"
