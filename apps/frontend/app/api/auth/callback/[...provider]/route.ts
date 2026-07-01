@@ -7,13 +7,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { provider } = await params
   const providerPath = provider.join("/")
   const search = request.nextUrl.search
-  const cookie = request.headers.get("cookie") || ""
+  const cookieHeader = request.headers.get("cookie") || ""
   const origin = request.nextUrl.origin
 
   const res = await fetch(`${BACKEND_URL}/api/auth/callback/${providerPath}${search}`, {
     headers: {
       Origin: origin,
-      ...(cookie ? { cookie } : {}),
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
     },
     redirect: "manual",
   })
@@ -22,8 +22,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const location = res.headers.get("location")
     if (location) {
       const response = NextResponse.redirect(new URL(location, request.url))
-      const cookies = res.headers.getSetCookie()
-      for (const cookie of cookies) {
+      const setCookies = res.headers.getSetCookie?.() || []
+      for (const cookie of setCookies) {
         response.headers.append("Set-Cookie", cookie)
       }
       return response

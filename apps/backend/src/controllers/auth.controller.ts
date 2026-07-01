@@ -4,7 +4,18 @@ import { fromNodeHeaders } from "better-auth/node"
 
 async function forwardResponse(reply: FastifyReply, res: Response) {
     reply.code(res.status)
-    res.headers.forEach((value, key) => reply.header(key, value))
+
+    const setCookies = res.headers.getSetCookie?.() || []
+    for (const cookie of setCookies) {
+        reply.raw.appendHeader("Set-Cookie", cookie)
+    }
+
+    res.headers.forEach((value, key) => {
+        if (key.toLowerCase() !== "set-cookie") {
+            reply.header(key, value)
+        }
+    })
+
     const text = await res.text()
     try {
         return JSON.parse(text)

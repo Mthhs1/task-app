@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-const SESSION_COOKIE = "better-auth.session_token"
+const SESSION_COOKIE = "__Secure-better-auth.session_token"
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const session = request.cookies.get(SESSION_COOKIE)?.value
   const { pathname } = request.nextUrl
 
