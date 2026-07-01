@@ -3,3 +3,6 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "pnpm --filter backend start"
+
+[env]
+NODE_VERSION = "20"
