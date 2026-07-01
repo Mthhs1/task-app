@@ -996,3 +996,95 @@ With `redirect: "manual"`:
 3. The proxy creates its own `302` redirect to the browser.
 4. The proxy forwards the `Set-Cookie` header to the browser.
 5. The browser handles the redirect and stores the cookie properly.
+
+---
+
+## 14. Session Cookie and Cache Flow
+
+### 14.1 Cookie Properties (Production)
+
+In production (HTTPS), Better Auth prefixes the session cookie with `__Secure-`, making the full name:
+
+```
+__Secure-better-auth.session_token
+```
+
+| Property | Value | Description |
+|----------|-------|-------------|
+| **Name** | `__Secure-better-auth.session_token` | `__Secure-` prefix is added automatically in production |
+| **Value** | Signed token | A cryptographically signed token |
+| **Signing Secret** | `BETTER_AUTH_SECRET` | 32+ character secret from env |
+| **HttpOnly** | `true` | Prevents JavaScript from reading it |
+| **Path** | `/` | Sent on every request to the domain |
+| **SameSite** | `lax` | Sent on top-level navigations and same-site requests |
+| **Secure** | `true` | Only sent over HTTPS |
+
+### 14.2 What Happens on a Page Refresh
+
+When the user refreshes `/dashboard`, the following sequence occurs:
+
+1. **Browser requests `/dashboard`**
+2. **Next.js Edge Middleware** (`apps/frontend/middleware.ts`) runs first — it reads the cookie **locally** from the request headers. No network request to the backend occurs at this stage.
+3. **Server renders the page** (SSR). The dashboard layout is a Client Component, so during SSR it renders the `<div>Loading...</div>` fallback.
+4. **Client hydrates**. The React tree mounts in the browser.
+5. **`useEffect(() => fetchSession(), [])` fires** — this is when you should see a network request to `/api/auth/session` in DevTools.
+6. **`fetchSession()`** calls the Next.js API route, which proxies to the backend with the raw `Cookie` header.
+7. **Backend verifies** the signed cookie and returns `{ user, session }`.
+8. **Zustand store updates** → React re-renders → dashboard content appears.
+
+### 14.3 Why the Session Fetch Wasn't Visible in DevTools
+
+Before the cache flow fixes, the session fetch response was being cached at multiple layers:
+
+- `fetch("/api/auth/session")` with no `cache` option → browser defaults to its own heuristics
+- The Next.js API route had no `Cache-Control` headers → could be cached by Next.js edge/CDN
+- Result: on refresh, the browser served the cached response (often `null` from a previous unauthenticated state) without making a visible network request
+
+### 14.4 Cache Prevention Measures
+
+The following measures ensure the session is always freshly validated:
+
+**In `fetchSession()` (`apps/frontend/store/auth-store.ts`)**:
+```typescript
+const res = await fetch("/api/auth/session", {
+    credentials: "include",  // ensures cookies are sent
+    cache: "no-store",       // tells the browser never to cache
+})
+```
+
+**In API route responses (`apps/frontend/app/api/auth/session/route.ts` and `apps/frontend/app/api/auth/route.ts`)**:
+```typescript
+response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate")
+```
+
+### 14.5 Cache Flow Summary
+
+| Layer | What It Caches | How It's Controlled |
+|---|---|---|
+| Browser | `fetch()` responses | `cache: "no-store"` in `fetchSession()` |
+| Next.js Edge / CDN | API route responses | `Cache-Control: no-store` header |
+| Next.js `router.refresh()` | RSC payloads | Not applicable here (client component) |
+
+### 14.6 Cookie Flow on Login
+
+1. **Login** → backend responds with `Set-Cookie: __Secure-better-auth.session_token=...`
+2. Browser stores the cookie (HttpOnly, Secure, SameSite=lax)
+3. **Refresh /dashboard** → browser sends the cookie automatically with every request to your domain
+4. **`fetchSession()`** → browser attaches the cookie to `/api/auth/session`
+5. **API route** (`apps/frontend/app/api/auth/session/route.ts`) receives the cookie via `request.headers.get("cookie")`
+6. API route forwards it to the backend
+7. Backend verifies the signature and returns session data
+
+### 14.7 Middleware and Session Validation
+
+The middleware (`apps/frontend/middleware.ts`) and the dashboard layout work independently:
+
+- **Middleware** only checks `request.cookies.get("__Secure-better-auth.session_token")` — it verifies the cookie **exists**, not that it's **valid**
+- **Dashboard layout** then validates the session by calling the backend via `fetchSession()`
+
+This means:
+- A user with an expired but present cookie can reach `/dashboard` (middleware lets them through)
+- The layout's `fetchSession()` returns `null`
+- User sees "Loading..." → redirect to `/login`
+
+There's a brief flash of the loading state. This is intentional — validating the session in the middleware would require calling the backend on every single page request, adding latency. The current approach keeps the middleware fast (cookie presence check only) and defers full validation to the client-side `fetchSession()`.
