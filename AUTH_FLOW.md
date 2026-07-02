@@ -126,7 +126,7 @@ export const auth = betterAuth({
 | Variable | Purpose |
 |----------|---------|
 | `BETTER_AUTH_SECRET` | Signs and verifies session cookies (min 32 chars) |
-| `BETTER_AUTH_URL` | Base URL for auth endpoints (`http://localhost:3001`) |
+| `BETTER_AUTH_URL` | Frontend URL — where the browser lives. Used to construct OAuth redirect URIs (`http://localhost:3000`) |
 | `CORS_ORIGIN` | Trusted frontend origin (`http://localhost:3000`) |
 | `GOOGLE_CLIENT_ID` | Google OAuth App ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth App Secret |
@@ -387,16 +387,16 @@ This pattern is repeated for:
 
 ## 8. Cookie Details
 
-The session cookie is named **`better-auth.session_token`** (Better Auth default).
+The session cookie is named **`better-auth.session_token`** (Better Auth default). In production (HTTPS), Better Auth prefixes it with `__Secure-`, making the full name `__Secure-better-auth.session_token`.
 
 ### Properties
 
 | Property | Value | Description |
 |----------|-------|-------------|
-| **Name** | `better-auth.session_token` | Default Better Auth cookie name |
+| **Name** | `better-auth.session_token` (dev) / `__Secure-better-auth.session_token` (prod) | Better Auth cookie name with `__Secure-` prefix in HTTPS |
 | **Value** | Signed token | A cryptographically signed token |
 | **Signing Secret** | `BETTER_AUTH_SECRET` | 32+ character secret from env |
-| **HttpOnly** | Usually `true` | Prevents JavaScript from reading it |
+| **HttpOnly** | `true` | Prevents JavaScript from reading it |
 | **Path** | `/` | Sent on every request to the domain |
 | **SameSite** | `lax` | Sent on top-level navigations and same-site requests |
 | **Secure** | `true` in production | Only sent over HTTPS in prod |
@@ -407,6 +407,8 @@ The session cookie is named **`better-auth.session_token`** (Better Auth default
 2. **Verified** on every `GET /api/auth/session` and protected backend route.
 3. **Refreshed** automatically by Better Auth if a refresh mechanism is configured.
 4. **Cleared** on logout via a `Set-Cookie` header with an expired `Max-Age`.
+
+For the complete cache flow and session refresh behavior, see [Section 14](#14-session-cookie-and-cache-flow).
 
 ---
 
@@ -539,7 +541,7 @@ Inside `auth.api.signInSocial`, Better Auth performs the following:
 ```
 https://accounts.google.com/o/oauth2/v2/auth?
   client_id=YOUR_GOOGLE_CLIENT_ID
-  &redirect_uri=http://localhost:3001/api/auth/callback/google
+  &redirect_uri=http://localhost:3000/api/auth/callback/google
   &response_type=code
   &scope=openid%20email%20profile
   &state=fijiy40fokaRnRW5Tz7svUINUxL0u3_o
@@ -548,7 +550,7 @@ https://accounts.google.com/o/oauth2/v2/auth?
 ```
 
 **Critical details**:
-- `redirect_uri` is your **backend** URL (`http://localhost:3001/api/auth/callback/google`), **not** the frontend. This is because Google must redirect to a server that can exchange the authorization code for tokens.
+- `redirect_uri` is your **frontend** URL (`http://localhost:3000/api/auth/callback/google`), **not** the backend. The browser must be redirected to the same origin that initiated the login so cookies are set correctly. The frontend proxy then forwards the request to the backend.
 - `state` is a one-time secret tied to this specific login attempt. It prevents CSRF attacks.
 - `scope` requests permission to read the user's email, name, and profile picture.
 - `prompt=consent` forces Google to show the consent screen every time (useful during development).
@@ -589,12 +591,12 @@ If the user approves your app, Google prepares an authorization response contain
 
 ---
 
-### 10.7 Step 7: Google Redirects Back to Your Backend
+### 10.7 Step 7: Google Redirects Back to Your Frontend Proxy
 
 Google redirects the browser to:
 
 ```
-GET http://localhost:3001/api/auth/callback/google?
+GET http://localhost:3000/api/auth/callback/google?
   state=fijiy40fokaRnRW5Tz7svUINUxL0u3_o
   &code=4/0AdkVLPwkoftVIaZ0dttAjPZdEIZ-RLBr7Ed4zmIwWB867shG4uZ_ypbDW_m_mEpkR_TbfA
   &scope=email%20profile%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/userinfo.email%20openid
@@ -603,7 +605,7 @@ GET http://localhost:3001/api/auth/callback/google?
   &prompt=consent
 ```
 
-**Important**: This request hits your **Fastify backend directly** (`localhost:3001`), not the Next.js frontend.
+**Important**: This request hits your **Next.js frontend proxy** (`localhost:3000`), which then forwards it to the Fastify backend. This ensures the `Set-Cookie` header is set on the same origin as the browser.
 
 ---
 
@@ -670,7 +672,7 @@ Content-Type: application/x-www-form-urlencoded
 
 grant_type=authorization_code
 &code=4/0AdkVLPwkoftVIaZ0dttAjPZdEIZ-RLBr7Ed4zmIwWB867shG4uZ_ypbDW_m_mEpkR_TbfA
-&redirect_uri=http://localhost:3001/api/auth/callback/google
+&redirect_uri=http://localhost:3000/api/auth/callback/google
 &client_id=YOUR_CLIENT_ID
 &client_secret=YOUR_CLIENT_SECRET
 ```
@@ -762,6 +764,11 @@ Better Auth constructs an HTTP response with:
 Set-Cookie: better-auth.session_token=random-session-token-xyz; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax
 ```
 
+In production (HTTPS), the cookie name is prefixed with `__Secure-`:
+```
+Set-Cookie: __Secure-better-auth.session_token=random-session-token-xyz; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax; Secure
+```
+
 #### 9g. Return a 302 Redirect
 
 Better Auth returns:
@@ -832,8 +839,7 @@ export async function GET(request: NextRequest, { params }) {
 
 **Why this proxy is essential**:
 - The OAuth callback must land on the **same origin** that initiated it (`localhost:3000`).
-- If the browser went directly to `localhost:3001`, it would be a cross-origin redirect.
-- The browser might block the cookie, or the frontend wouldn't know the login succeeded.
+- If Google redirected directly to the backend (`localhost:3001`), the `Set-Cookie` header would be set for the backend domain. The browser would reject it or the frontend wouldn't know the login succeeded.
 - The proxy forwards the request (with existing cookies) to the backend. The backend runs Step 9 and returns the `302` with `Set-Cookie`.
 
 **What `redirect: "manual"` does**:
@@ -872,6 +878,8 @@ Location: http://localhost:3000
 Set-Cookie: better-auth.session_token=random-session-token-xyz; HttpOnly; Path=/; Max-Age=604800
 ```
 
+In production (HTTPS), the cookie name includes the `__Secure-` prefix and the `Secure` flag.
+
 ---
 
 ### 10.12 Step 12: Browser Redirects to the App
@@ -905,9 +913,12 @@ Now:
      │ ⑤ User authenticates at Google
      │
      │ ⑥ Google redirects to:
-     │    GET http://localhost:3001/api/auth/callback/google?code=...&state=...
+     │    GET http://localhost:3000/api/auth/callback/google?code=...&state=...
      │
-     │ ⑦ Better Auth (inside Fastify):
+     │ ⑦ Next.js proxy forwards to backend (with redirect: "manual")
+     │    POST http://localhost:3001/api/auth/callback/google?code=...&state=...
+     │
+     │ ⑧ Better Auth (inside Fastify):
      │    - Validates state
      │    - POST https://oauth2.googleapis.com/token (exchange code for tokens)
      │    - Decodes id_token JWT
@@ -918,15 +929,9 @@ Now:
      │    - Returns: 302 Location: http://localhost:3000
      │               Set-Cookie: better-auth.session_token=...
      │
-     │ ⑧ Browser follows 302 to:
-     │    GET http://localhost:3000/api/auth/callback/google?code=...&state=...
+     │ ⑨ Next.js proxy forwards 302 + Set-Cookie to browser
      │
-     │ ⑨ Next.js proxy forwards to backend again (with redirect: "manual")
-     │    Backend returns same 302 + Set-Cookie
-     │
-     │ ⑩ Next.js proxy forwards 302 + Set-Cookie to browser
-     │
-     │ ⑪ Browser follows 302 to http://localhost:3000
+     │ ⑩ Browser follows 302 to http://localhost:3000
      │    Cookie is now set! User is logged in.
      ▼
 ```

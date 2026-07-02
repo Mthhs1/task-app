@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-const SESSION_COOKIE = "__Secure-better-auth.session_token"
+function getSessionCookieName(): string {
+  const isProd = process.env.NODE_ENV === "production"
+  return isProd
+    ? "__Secure-better-auth.session_token"
+    : "better-auth.session_token"
+}
 
 export function middleware(request: NextRequest) {
-  const session = request.cookies.get(SESSION_COOKIE)?.value
+  const session = request.cookies.get(getSessionCookieName())?.value
   const { pathname } = request.nextUrl
 
   const isAuthPage = pathname === "/login" || pathname === "/signup"

@@ -91,7 +91,7 @@ apps/frontend/
       auth/logout/route.ts
     page.tsx                  # public landing page
     error.tsx                 # planned
-    proxy.ts                  # route protection middleware
+    middleware.ts             # route protection middleware (dynamic session cookie name)
   lib/
     auth-client.ts            # better-auth client init
     api.ts                    # fetch wrapper (planned)
@@ -257,7 +257,7 @@ Expand `src/index.ts` with all Zod schemas + inferred TS types:
 
 **Root:**
 
-- `proxy.ts` — protect `(app)/*` routes, redirect unauthenticated -> `/login`
+- `middleware.ts` — protect `(app)/*` routes, redirect unauthenticated -> `/login`
 
 **Components:**
 
@@ -294,7 +294,7 @@ Expand `src/index.ts` with all Zod schemas + inferred TS types:
 
 **Middleware:**
 
-- `proxy.ts` — `/` is public (redirects to `/dashboard` if logged in); `/dashboard/*` is protected (redirects to `/login` if not); auth pages redirect to `/dashboard` when authenticated
+- `middleware.ts` — dynamic session cookie name (`better-auth.session_token` in dev, `__Secure-better-auth.session_token` in prod); `/` is public (redirects to `/dashboard` if logged in); `/dashboard/*` is protected (redirects to `/login` if not); auth pages redirect to `/dashboard` when authenticated
 
 **Additional Shadcn:** `sheet` (mobile sidebar), `tooltip`, `scroll-area`, `skeleton`
 
@@ -304,23 +304,37 @@ Expand `src/index.ts` with all Zod schemas + inferred TS types:
 
 ### Step 6: Backend Tasks Core (CRUD + Subtasks)
 
+**Schema changes:**
+- `tasks.organizationId` → nullable (tasks can be personal or org-scoped)
+- `tasks.userId` → new column (FK to users, cascade delete, for personal tasks)
+
 **Files to create:**
 
 - `src/services/task.service.ts` — create, list (with filters), get (with subtasks/tags/time), update, delete, reorder
-- `src/controllers/tasks.controller.ts` — thin wrapper
-- `src/routes/tasks.routes.ts` — zod-validated routes
+- `src/controllers/tasks.controller.ts` — thin wrapper (separate handlers for org vs personal tasks)
+- `src/routes/tasks.routes.ts` — zod-validated routes (two route sets)
 
 **Route map:**
 
 ```
+# Organization tasks (requires auth + org membership)
 POST   /api/groups/:groupId/tasks            -> create task (with optional parentId for subtask)
 GET    /api/groups/:groupId/tasks            -> list tasks (filters: status, priority, assignee, tag, milestone)
 GET    /api/groups/:groupId/tasks/:taskId    -> get task (with subtasks, tags, time entries, comments count)
 PATCH  /api/groups/:groupId/tasks/:taskId    -> update task
 DELETE /api/groups/:groupId/tasks/:taskId    -> delete task
+PATCH  /api/groups/:groupId/tasks/:taskId/reorder -> reorder task within status column
+
+# Personal tasks (requires auth only)
+POST   /api/tasks                            -> create personal task
+GET    /api/tasks                            -> list personal tasks (filters: status, priority, search)
+GET    /api/tasks/:taskId                    -> get personal task
+PATCH  /api/tasks/:taskId                    -> update personal task
+DELETE /api/tasks/:taskId                    -> delete personal task
+PATCH  /api/tasks/:taskId/reorder            -> reorder personal task
 ```
 
-**Verify:** API CRUD works via curl/REST client, subtask creation via `parentId`.
+**Verify:** API CRUD works via curl/REST client, subtask creation via `parentId`, personal tasks work without org membership.
 
 ---
 
