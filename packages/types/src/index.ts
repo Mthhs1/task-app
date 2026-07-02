@@ -40,7 +40,7 @@ export const taskSchema = z.object({
   assigneeId: z.string().nullable().default(null),
   milestoneId: z.string().nullable().default(null),
   parentId: z.string().nullable().default(null),
-  orgId: z.string(),
+  orgId: z.string().nullable().default(null),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

@@ -108,7 +108,7 @@ Sign up and log in with email and password. Passwords hashed via better-auth. Se
 Sign in with Google. Requires Google Cloud Console OAuth credentials configured in backend env. Callback URL: `http://localhost:3001/api/auth/callback/google`.
 
 ### Route Protection
-Next.js 16 `proxy.ts` intercepts all `(app)/*` routes and redirects unauthenticated users to `/login`. Session is also validated server-side on every API request via auth middleware.
+Next.js 16 `middleware.ts` intercepts all `(app)/*` routes and redirects unauthenticated users to `/login`. Session cookie name is dynamic (`better-auth.session_token` in dev, `__Secure-better-auth.session_token` in prod). Session is also validated server-side on every API request via auth middleware.
 
 ---
 

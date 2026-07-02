@@ -11,7 +11,8 @@ export const milestoneStatusEnum = pgEnum("milestone_status", ["active", "comple
 
 export const tasks = pgTable("tasks", {
   id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: text("organization_id").notNull().references(() => organization.id),
+  organizationId: text("organization_id").references(() => organization.id),
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
   parentId: uuid("parent_id").references((): AnyPgColumn => tasks.id, { onDelete: "set null" }),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),

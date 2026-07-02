@@ -11,6 +11,7 @@ export const userRelations = relations(user, ({ many }) => ({
   invitations: many(invitation),
   createdTasks: many(tasks),
   assignedTasks: many(tasks),
+  personalTasks: many(tasks, { relationName: "personal_tasks" }),
   comments: many(comments),
   mentions: many(mentions),
   timeEntries: many(timeEntries),
@@ -66,6 +67,11 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   organization: one(organization, {
     fields: [tasks.organizationId],
     references: [organization.id],
+  }),
+  owner: one(user, {
+    fields: [tasks.userId],
+    references: [user.id],
+    relationName: "personal_tasks",
   }),
   parent: one(tasks, {
     fields: [tasks.parentId],

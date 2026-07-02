@@ -96,7 +96,8 @@ invitation    — id, organizationId, email, role, status, inviterId, expiresAt,
 | Column | Type | Notes |
 |---|---|---|
 | id | serial PK | |
-| organizationId | int FK->organization | |
+| organizationId | int FK->organization (nullable) | null for personal tasks |
+| userId | int FK->users (nullable) | owner for personal tasks |
 | parentId | int FK->tasks (nullable) | self-reference for subtasks |
 | title | varchar(255) | |
 | description | text (nullable) | |
@@ -210,19 +211,20 @@ invitation    — id, organizationId, email, role, status, inviterId, expiresAt,
 Request
   -> @fastify/cors (credentials: true, origin: CORS_ORIGIN)
   -> auth.middleware (validates session cookie, decorates request.user)
-  -> org.middleware (validates :groupId membership, decorates request.member with role)
+  -> org.middleware (only for /api/groups/* routes, validates :groupId membership)
   -> controller (calls service)
   -> service (business logic, agnostic of protocol)
   -> db (drizzle)
 ```
 
 ### auth.middleware.ts
-- Reads session cookie/token from request
+- Reads session cookie from request (name varies by env: `better-auth.session_token` in dev, `__Secure-better-auth.session_token` in prod)
 - Calls `auth.api.getSession()` to validate
 - Decorates `request.user` with session user
 - Returns 401 if no session
 
 ### org.middleware.ts
+- Only applied to `/api/groups/:groupId/*` routes
 - Reads `:groupId` param
 - Checks `member` table for `userId + organizationId`
 - Decorates `request.member` with role (owner|admin|member)
@@ -295,11 +297,21 @@ ALL    /api/auth/*                           -> auth.controller (delegates to be
 ### Tasks
 
 ```
+# Organization tasks (requires auth + org membership)
 POST   /api/groups/:groupId/tasks            -> create task (with optional parentId for subtask)
 GET    /api/groups/:groupId/tasks            -> list tasks (filters: status, priority, assignee, tag, milestone)
 GET    /api/groups/:groupId/tasks/:taskId    -> get task (with subtasks, tags, time entries, comments count)
 PATCH  /api/groups/:groupId/tasks/:taskId    -> update task
 DELETE /api/groups/:groupId/tasks/:taskId    -> delete task
+PATCH  /api/groups/:groupId/tasks/:taskId/reorder -> reorder task within status column
+
+# Personal tasks (requires auth only)
+POST   /api/tasks                            -> create personal task
+GET    /api/tasks                            -> list personal tasks (filters: status, priority, search)
+GET    /api/tasks/:taskId                    -> get personal task
+PATCH  /api/tasks/:taskId                    -> update personal task
+DELETE /api/tasks/:taskId                    -> delete personal task
+PATCH  /api/tasks/:taskId/reorder            -> reorder personal task
 ```
 
 ### Recurrence
