@@ -50,7 +50,7 @@ All methods are fully typed — the return type matches the Zod-inferred types f
 
 **`WsClient` class internals:**
 
-- **`connect(token)`** — Opens a WebSocket to `ws://localhost:3001/ws?token=<session_token>`. The token is the session cookie value, passed as a query param because browsers can't set custom headers on WebSocket connections.
+- **`connect()`** — Opens a WebSocket to `ws://localhost:3001/ws` (or `wss://` on HTTPS). Authentication is handled via the session cookie attached to the initial HTTP upgrade request, so no token is passed in the URL.
 
 - **Auto-reconnect with exponential backoff:**
   - On `onclose` or `onerror`, it schedules a reconnect after 1 second
@@ -78,9 +78,9 @@ All methods are fully typed — the return type matches the Zod-inferred types f
 
 - **`formatDuration(minutes)`** — Converts minutes to `"2d 3h 15m"` format. Handles zero, negative values, and skips zero units (e.g., `1440` → `"1d"`, not `"1d 0h 0m"`).
 
-- **`formatDate(date)`** — Formats a Date to `"02 Jul 2026"` (pt-BR locale). Returns empty string for null.
+- **`formatDate(date)`** — Formats a Date using pt-BR locale (e.g., `"02 de jul. de 2026"`). Returns empty string for null.
 
-- **`formatRelativeTime(date)`** — Uses `Intl.RelativeTimeFormat` to produce `"2 days ago"`, `"in 3 hours"`, `"just now"`, etc. in pt-BR.
+- **`formatRelativeTime(date)`** — Uses `Intl.RelativeTimeFormat` with pt-BR to produce relative strings like `"há 2 dias"`, `"daqui a 3 horas"`, `"agora"`, etc.
 
 - **`formatTimeRemaining(estimateMinutes, loggedMinutes)`** — Calculates `estimate - logged` and returns either `"Tempo esgotado"` (if over budget) or `"1h 30m restantes"`.
 
@@ -168,7 +168,7 @@ const config = PRIORITY_CONFIG[task.priority];
 
 ## Information Flow
 
-```
+```text
 User action (click "Create Task")
   → task-dialog.tsx calls store.addTask(data)
     → Store adds temp task to tasks[] (UI updates instantly)
