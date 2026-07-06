@@ -167,8 +167,16 @@ async function request<T>(
 
 // apiGet: appends query params as ?key=value&key2=value2 (URLSearchParams
 // handles encoding). If no query is provided, the path is used as-is.
+// Filters out undefined/null values to prevent "undefined" appearing in URLs.
 export async function apiGet<T>(path: string, query?: Record<string, string>) {
-  const qs = query ? `?${new URLSearchParams(query).toString()}` : "";
+  let qs = "";
+  if (query) {
+    // Remove undefined and null values before building query string
+    const filtered = Object.fromEntries(
+      Object.entries(query).filter(([_, value]) => value != null)
+    );
+    qs = Object.keys(filtered).length > 0 ? `?${new URLSearchParams(filtered).toString()}` : "";
+  }
   return request<T>(`${path}${qs}`, { method: "GET" });
 }
 
