@@ -1,18 +1,16 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import {
     LayoutDashboard,
     Users,
     CheckSquare,
     Calendar,
     Settings,
-    LogOut,
+    CircleHelp,
 } from "lucide-react"
-import { useAuthStore } from "@/store/auth-store"
 
 const navItems = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -24,18 +22,6 @@ const navItems = [
 
 export function Sidebar() {
     const pathname = usePathname()
-    const router = useRouter()
-    const { user, clearSession } = useAuthStore()
-
-    async function handleLogout() {
-        await fetch("/api/auth", {
-            method: "POST",
-            body: JSON.stringify({ action: "logout" }),
-        })
-        clearSession()
-        router.push("/login")
-        router.refresh()
-    }
 
     return (
         <aside className="flex w-64 flex-col border-r border-border bg-sidebar">
@@ -68,22 +54,13 @@ export function Sidebar() {
                 })}
             </nav>
             <div className="border-t border-border p-4">
-                <div className="mb-3 flex items-center gap-3">
-                    <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
-                        {user?.name?.charAt(0) || "U"}
-                    </div>
-                    <div className="flex-1 truncate text-sm font-medium">
-                        {user?.name || "User"}
-                    </div>
-                </div>
-                <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-3"
-                    onClick={handleLogout}
+                <Link
+                    href="/help"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/50"
                 >
-                    <LogOut className="size-4" />
-                    Logout
-                </Button>
+                    <CircleHelp className="size-4" />
+                    Help Center
+                </Link>
             </div>
         </aside>
     )

@@ -77,8 +77,12 @@ apps/frontend/
       signup/page.tsx
     dashboard/
       layout.tsx              # auth-guarded shell (sidebar + header)
-      page.tsx                # dashboard home / overview
+      page.tsx                # dashboard home / overview (minhas tarefas)
       groups/page.tsx         # list/create organizations (planned)
+      tasks/
+        page.tsx              # task board (list/kanban/calendar views)
+        [taskId]/
+          page.tsx            # full task detail (comments, subtasks, time entries)
       [groupId]/
         layout.tsx            # org context provider (planned)
         tasks/page.tsx        # task board (planned)
@@ -117,7 +121,7 @@ apps/frontend/
       task-board.tsx          # planned
       task-list.tsx           # planned
       task-card.tsx           # planned
-      task-dialog.tsx         # planned
+      task-dialog.tsx         # quick preview (title, description, status, timeEstimate)
       task-filters.tsx        # planned
       task-kanban.tsx         # planned
       kanban-column.tsx       # planned
@@ -151,6 +155,7 @@ apps/frontend/
 | `tooltip` | 5 | Action hints |
 | `scroll-area` | 5 | Scrollable lists |
 | `skeleton` | 5 | Loading states |
+| `dialog` | 8 | Quick task preview |
 | `alert-dialog` | 8 | Delete confirmations |
 | `switch` | 8 | Recurrence toggle, dark mode |
 | `progress` | 12 | Milestone/time progress bars |
@@ -176,8 +181,12 @@ app/
     signup/page.tsx             # Step 4
   dashboard/
     layout.tsx                  # Step 5 — auth shell
-    page.tsx                    # Step 5 — dashboard home/overview
+    page.tsx                    # Step 8 — dashboard home/overview (minhas tarefas)
     groups/page.tsx             # Step 6 — list/create orgs
+    tasks/
+      page.tsx                  # Step 8 — task board (list/kanban/calendar)
+      [taskId]/
+        page.tsx                # Step 8 — full task detail (comments, subtasks, time entries)
     [groupId]/
       layout.tsx                # Step 8 — org context
       tasks/page.tsx            # Step 8 — task board (list/kanban/calendar)
@@ -357,22 +366,32 @@ PATCH  /api/tasks/:taskId/reorder            -> reorder personal task
 
 ### Step 8: Frontend Task List View
 
+**Two-Tier Task View Approach:**
+
+1. **Shadcn Dialog (Quick Preview)** — Click task card → shows Title, Description, Status, TimeEstimate
+2. **Dedicated Route** (`/dashboard/tasks/[taskId]`) — Full details: comments, subtasks, time entries, author info
+
 **Pages:**
 
-- `app/(app)/[groupId]/layout.tsx` — org context provider
-- `app/(app)/[groupId]/tasks/page.tsx` — server component, fetch initial tasks, render `<TaskBoard/>`
+- `app/dashboard/page.tsx` — dashboard overview with single-row toolbar: description + priority tabs + list/grid toggle
+- `app/dashboard/tasks/page.tsx` — task board with single-row toolbar: description + priority tabs + list/kanban tabs + list/grid toggle
+- `app/dashboard/tasks/[taskId]/page.tsx` — full task detail page
 
 **Components:**
 
-- `src/components/tasks/task-board.tsx` — container with view toggle tabs (placeholder for kanban/calendar)
-- `src/components/tasks/task-list.tsx` — flat/grouped list
-- `src/components/tasks/task-card.tsx` — priority badge, due date, assignee avatar, tags, subtask count
-- `src/components/tasks/task-dialog.tsx` — create/edit form (title, description, priority, status, assignee, dueDate, timeEstimate, tags, milestone)
+- `src/components/tasks/task-card.tsx` — priority badge, time estimate (clickable → opens dialog)
+- `src/components/tasks/task-list.tsx` — flat/grouped list (supports list + grid view modes)
+- `src/components/tasks/task-dialog.tsx` — quick preview dialog (title, description, status, timeEstimate) + link to full detail page
+- `src/components/tasks/task-board.tsx` — container with view toggle tabs (list/kanban/calendar)
 - `src/components/tasks/task-filters.tsx` — filter by status, priority, assignee, tags
 
-**Additional Shadcn:** `alert-dialog` (delete confirmation), `switch` (recurrence toggle)
+**Additional Shadcn:** `dialog` (quick task preview), `alert-dialog` (delete confirmation), `switch` (recurrence toggle)
 
-**Verify:** create task -> appears in list -> edit -> delete with confirmation.
+**Verify:**
+- Click task card → dialog opens with quick preview
+- Click "View details" in dialog → navigates to `/dashboard/tasks/[taskId]`
+- Full detail page shows comments, subtasks, time entries, author info
+- create task → appears in list → edit → delete with confirmation.
 
 ---
 
