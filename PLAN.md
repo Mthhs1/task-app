@@ -374,7 +374,7 @@ PATCH  /api/tasks/:taskId/reorder            -> reorder personal task
 **Pages:**
 
 - `app/dashboard/page.tsx` — dashboard overview with single-row toolbar: description + priority tabs + list/grid toggle
-- `app/dashboard/tasks/page.tsx` — task board with single-row toolbar: description + priority tabs + list/kanban tabs + list/grid toggle
+- `app/dashboard/tasks/page.tsx` — task list with single-row toolbar: description + priority tabs + list/grid toggle
 - `app/dashboard/tasks/[taskId]/page.tsx` — full task detail page
 
 **Components:**
@@ -382,16 +382,13 @@ PATCH  /api/tasks/:taskId/reorder            -> reorder personal task
 - `src/components/tasks/task-card.tsx` — priority badge, time estimate (clickable → opens dialog)
 - `src/components/tasks/task-list.tsx` — flat/grouped list (supports list + grid view modes)
 - `src/components/tasks/task-dialog.tsx` — quick preview dialog (title, description, status, timeEstimate) + link to full detail page
-- `src/components/tasks/task-board.tsx` — container with view toggle tabs (list/kanban/calendar)
-- `src/components/tasks/task-filters.tsx` — filter by status, priority, assignee, tags
 
 **Additional Shadcn:** `dialog` (quick task preview), `alert-dialog` (delete confirmation), `switch` (recurrence toggle)
 
 **Verify:**
 - Click task card → dialog opens with quick preview
-- Click "View details" in dialog → navigates to `/dashboard/tasks/[taskId]`
+- Click "Ver detalhes completos" in dialog → navigates to `/dashboard/tasks/[taskId]`
 - Full detail page shows comments, subtasks, time entries, author info
-- create task → appears in list → edit → delete with confirmation.
 
 ---
 

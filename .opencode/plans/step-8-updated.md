@@ -44,6 +44,7 @@
 
 ### Verify
 - Click task card → dialog opens with quick preview
-- Click "View details" in dialog → navigates to `/dashboard/tasks/[taskId]`
+- Click "Ver detalhes completos" in dialog → navigates to `/dashboard/tasks/[taskId]`
 - Full detail page shows comments, subtasks, time entries, author info
-- create task → appears in list → edit → delete with confirmation
+- List/grid view modes work correctly
+- Priority tab filtering and sorting work correctly

@@ -3,11 +3,11 @@
 import Link from "next/link"
 import { ArrowLeft, Calendar, Clock, User, MessageSquare, ListTodo, Timer } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { PRIORITY_CONFIG, STATUS_CONFIG } from "@/lib/constants"
+import { PriorityBadge } from "@/components/tasks/task-shared"
 import type { ITask, Priority, TaskStatus } from "@meu-projeto/types"
 import { formatDistanceToNow, format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -26,18 +26,6 @@ const MOCK_TASK: ITask = {
   orgId: null,
   createdAt: new Date("2026-07-01"),
   updatedAt: new Date("2026-07-03"),
-}
-
-function PriorityBadge({ priority }: { priority: Priority }) {
-  const config = PRIORITY_CONFIG[priority]
-  return (
-    <Badge
-      variant="outline"
-      className={cn("border-transparent text-xs", config.color)}
-    >
-      {config.label}
-    </Badge>
-  )
 }
 
 function StatusBadge({ status }: { status: TaskStatus }) {
@@ -62,11 +50,9 @@ export function TaskDetailContent() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <Link href="/dashboard/tasks">
-        <Button variant="ghost" size="sm" className="gap-1">
-          <ArrowLeft className="size-4" />
-          Voltar
-        </Button>
+      <Link href="/dashboard/tasks" className="inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] [&_svg:not([class*='size-'])]:size-3.5">
+        <ArrowLeft className="size-4" />
+        Voltar
       </Link>
 
       <div>

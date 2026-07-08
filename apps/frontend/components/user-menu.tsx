@@ -10,13 +10,19 @@ export function UserMenu() {
   const { user, clearSession } = useAuthStore()
 
   async function handleLogout() {
-    await fetch("/api/auth", {
-      method: "POST",
-      body: JSON.stringify({ action: "logout" }),
-    })
-    clearSession()
-    router.push("/login")
-    router.refresh()
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout" }),
+      })
+      if (!response.ok) return
+      clearSession()
+      router.push("/login")
+      router.refresh()
+    } catch {
+      // logout failed, stay on page
+    }
   }
 
   return (
