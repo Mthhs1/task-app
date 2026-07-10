@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Calendar, Clock, ExternalLink } from "lucide-react"
+import { Calendar, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,

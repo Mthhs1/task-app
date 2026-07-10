@@ -1,6 +1,6 @@
 import { Clock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { PRIORITY_CONFIG, PRIORITY_ORDER } from "@/lib/constants"
 import type { ITask, Priority } from "@meu-projeto/types"
@@ -33,12 +33,11 @@ export function TimeEstimateDisplay({ minutes }: { minutes: number | null }) {
 }
 
 type ClickableCardProps = {
-  task: ITask
   onClick?: () => void
   children: React.ReactNode
 }
 
-export function ClickableCard({ task, onClick, children }: ClickableCardProps) {
+export function ClickableCard({ onClick, children }: ClickableCardProps) {
   return (
     <Card
       className="group cursor-pointer hover:ring-1 hover:ring-ring/50"

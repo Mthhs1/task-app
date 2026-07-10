@@ -7,7 +7,8 @@ import { useAuthStore } from "@/store/auth-store"
 
 export function UserMenu() {
   const router = useRouter()
-  const { user, clearSession } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const clearSession = useAuthStore((s) => s.clearSession)
 
   async function handleLogout() {
     try {
