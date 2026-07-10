@@ -1,10 +1,17 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, Calendar, Clock, User, MessageSquare, ListTodo, Timer } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, User, MessageSquare, ListTodo, Timer, MoreVertical, Pencil, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { STATUS_CONFIG } from "@/lib/constants"
 import { PriorityBadge } from "@/components/tasks/task-shared"
@@ -56,10 +63,33 @@ export function TaskDetailContent() {
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{task.title}</h1>
-        {task.description && (
-          <p className="mt-2 text-muted-foreground">{task.description}</p>
-        )}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{task.title}</h1>
+            {task.description && (
+              <p className="mt-2 text-muted-foreground">{task.description}</p>
+            )}
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button variant="ghost" size="icon" className="shrink-0">
+                <MoreVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <Pencil className="mr-2 size-4" />
+                Editar tarefa
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive focus:text-destructive">
+                <Trash2 className="mr-2 size-4" />
+                Excluir tarefa
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <div className="mt-3 flex items-center gap-2">
           <PriorityBadge priority={task.priority} />
           <StatusBadge status={task.status} />

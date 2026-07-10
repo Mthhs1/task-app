@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PRIORITY_ORDER } from "@/lib/constants"
-import { MOCK_TASKS } from "@/lib/mock-tasks"
+import { useTasksStore } from "@/store/tasks-store"
 import type { ITask } from "@meu-projeto/types"
 
 export function useTaskBoard() {
@@ -10,11 +10,21 @@ export function useTaskBoard() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
   const [selectedTask, setSelectedTask] = useState<ITask | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+
+  const tasks = useTasksStore((s) => s.tasks)
+  const loading = useTasksStore((s) => s.loading)
+  const error = useTasksStore((s) => s.error)
+  const fetchTasks = useTasksStore((s) => s.fetchTasks)
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
 
   const filteredTasks =
     activeTab === "all"
-      ? MOCK_TASKS
-      : MOCK_TASKS.filter((task) => task.priority === activeTab)
+      ? tasks
+      : tasks.filter((task) => task.priority === activeTab)
 
   const sortedTasks = [...filteredTasks].sort(
     (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
@@ -25,9 +35,13 @@ export function useTaskBoard() {
     setDialogOpen(true)
   }
 
+  function handleTabChange(tab: string) {
+    setActiveTab(tab)
+  }
+
   return {
     activeTab,
-    setActiveTab,
+    setActiveTab: handleTabChange,
     viewMode,
     setViewMode,
     selectedTask,
@@ -35,5 +49,9 @@ export function useTaskBoard() {
     setDialogOpen,
     sortedTasks,
     handleTaskClick,
+    createDialogOpen,
+    setCreateDialogOpen,
+    loading,
+    error,
   }
 }

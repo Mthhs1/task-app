@@ -1,9 +1,11 @@
 "use client"
 
-import { List, Grid } from "lucide-react"
+import { List, Grid, Plus } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import { TaskList } from "@/components/tasks/task-list"
 import { TaskDialog } from "@/components/tasks/task-dialog"
+import { TaskCreateDialog } from "@/components/tasks/task-create-dialog"
 import { useTaskBoard } from "@/hooks/use-task-board"
 
 export function DashboardContent() {
@@ -17,6 +19,9 @@ export function DashboardContent() {
     setDialogOpen,
     sortedTasks,
     handleTaskClick,
+    createDialogOpen,
+    setCreateDialogOpen,
+    loading,
   } = useTaskBoard()
 
   return (
@@ -35,6 +40,15 @@ export function DashboardContent() {
         </Tabs>
 
         <div className="flex items-center gap-1 rounded-lg border p-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-md"
+            onClick={() => setCreateDialogOpen(true)}
+            aria-label="Nova tarefa"
+          >
+            <Plus className="size-4" />
+          </Button>
           <button
             type="button"
             onClick={() => setViewMode("list")}
@@ -62,16 +76,27 @@ export function DashboardContent() {
         </div>
       </div>
 
-      <TaskList
-        tasks={sortedTasks}
-        viewMode={viewMode}
-        onTaskClick={handleTaskClick}
-      />
+      {loading ? (
+        <p className="text-center text-sm text-muted-foreground py-8">
+          Carregando tarefas...
+        </p>
+      ) : (
+        <TaskList
+          tasks={sortedTasks}
+          viewMode={viewMode}
+          onTaskClick={handleTaskClick}
+        />
+      )}
 
       <TaskDialog
         task={selectedTask}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+      />
+
+      <TaskCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
       />
     </div>
   )
