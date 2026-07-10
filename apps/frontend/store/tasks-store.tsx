@@ -145,7 +145,7 @@ function createTasksStore() {
         return;
       }
 
-      set({ tasks: result.data, loading: false, error: null });
+      set({ tasks: result.data.tasks ?? [], loading: false, error: null });
     },
 
     // --------------------------------------------------------------------------
@@ -161,7 +161,7 @@ function createTasksStore() {
         updatedAt: new Date(),
       } as ITask;
 
-      set((state) => ({ tasks: [optimisticTask, ...state.tasks] }));
+      set((state) => ({ tasks: [optimisticTask, ...(state.tasks || [])] }));
 
       const result = activeGroupId
         ? await taskApi.createOrg(activeGroupId, data)
@@ -169,14 +169,14 @@ function createTasksStore() {
 
       if (result.error) {
         set((state) => ({
-          tasks: state.tasks.filter((t) => t.id !== optimisticTask.id),
+          tasks: (state.tasks || []).filter((t) => t.id !== optimisticTask.id),
           error: result.error.message,
         }));
         return;
       }
 
       set((state) => ({
-        tasks: state.tasks.map((t) => (t.id === optimisticTask.id ? result.data : t)),
+        tasks: (state.tasks || []).map((t) => (t.id === optimisticTask.id ? result.data : t)),
       }));
     },
 
@@ -187,7 +187,7 @@ function createTasksStore() {
       const { activeGroupId } = get();
 
       set((state) => ({
-        tasks: state.tasks.map((t) =>
+        tasks: (state.tasks || []).map((t) =>
           t.id === id ? { ...t, ...data, updatedAt: new Date() } : t,
         ),
       }));
@@ -204,7 +204,7 @@ function createTasksStore() {
       }
 
       set((state) => ({
-        tasks: state.tasks.map((t) => (t.id === id ? result.data : t)),
+        tasks: (state.tasks || []).map((t) => (t.id === id ? result.data : t)),
       }));
     },
 
@@ -215,7 +215,7 @@ function createTasksStore() {
       const { activeGroupId } = get();
 
       set((state) => ({
-        tasks: state.tasks.filter((t) => t.id !== id),
+        tasks: (state.tasks || []).filter((t) => t.id !== id),
       }));
 
       const result = activeGroupId
@@ -238,20 +238,21 @@ function createTasksStore() {
       switch (message.type) {
         case "task:created": {
           set((state) => {
-            if (state.tasks.find((t) => t.id === message.payload.id)) return state;
-            return { tasks: [message.payload, ...state.tasks] };
+            const tasks = state.tasks || [];
+            if (tasks.find((t) => t.id === message.payload.id)) return state;
+            return { tasks: [message.payload, ...tasks] };
           });
           break;
         }
         case "task:updated": {
           set((state) => ({
-            tasks: state.tasks.map((t) => (t.id === message.payload.id ? message.payload : t)),
+            tasks: (state.tasks || []).map((t) => (t.id === message.payload.id ? message.payload : t)),
           }));
           break;
         }
         case "task:deleted": {
           set((state) => ({
-            tasks: state.tasks.filter((t) => t.id !== message.payload.id),
+            tasks: (state.tasks || []).filter((t) => t.id !== message.payload.id),
           }));
           break;
         }

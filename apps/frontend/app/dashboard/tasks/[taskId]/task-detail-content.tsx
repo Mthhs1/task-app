@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { STATUS_CONFIG } from "@/lib/constants"
 import { PriorityBadge } from "@/components/tasks/task-shared"
@@ -57,7 +56,7 @@ export function TaskDetailContent() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <Link href="/dashboard/tasks" className="inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] [&_svg:not([class*='size-'])]:size-3.5">
+      <Link href="/dashboard/tasks" className="inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50 h-7 gap-1 px-2.5 text-[0.8rem] [&_svg:not([class*='size-'])]:size-3.5">
         <ArrowLeft className="size-4" />
         Voltar
       </Link>
@@ -72,13 +71,11 @@ export function TaskDetailContent() {
           </div>
 
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button variant="ghost" size="icon" className="shrink-0">
-                <MoreVertical className="size-4" />
-              </Button>
+            <DropdownMenuTrigger className="h-9 w-9 shrink-0 hover:bg-muted">
+              <MoreVertical className="size-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-60">
+              <DropdownMenuItem>  
                 <Pencil className="mr-2 size-4" />
                 Editar tarefa
               </DropdownMenuItem>

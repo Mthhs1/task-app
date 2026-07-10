@@ -21,10 +21,11 @@ export function useTaskBoard() {
     fetchTasks()
   }, [fetchTasks])
 
+  const safeTasks = Array.isArray(tasks) ? tasks : []
   const filteredTasks =
     activeTab === "all"
-      ? tasks
-      : tasks.filter((task) => task.priority === activeTab)
+      ? safeTasks
+      : safeTasks.filter((task) => task.priority === activeTab)
 
   const sortedTasks = [...filteredTasks].sort(
     (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]

@@ -202,7 +202,7 @@ export async function apiDelete<T>(path: string) {
 export const taskApi = {
   // List org tasks with filters (status, priority, assignee, tag, milestone, search)
   listOrg: (groupId: string, query?: TaskListQuery) =>
-    apiGet<ITask[]>(`/api/groups/${groupId}/tasks`, query as Record<string, string>),
+    apiGet<{ tasks: ITask[]; total: number }>(`/api/groups/${groupId}/tasks`, query as Record<string, string>),
 
   // Get a single task with relations (subtasks, tags, time entries, comments count)
   getOrg: (groupId: string, taskId: string) =>
@@ -226,7 +226,7 @@ export const taskApi = {
 
   // List personal tasks (not tied to any org) with same filters
   listPersonal: (query?: TaskListQuery) =>
-    apiGet<ITask[]>("/api/tasks", query as Record<string, string>),
+    apiGet<{ tasks: ITask[]; total: number }>("/api/tasks", query as Record<string, string>),
 
   // Get a personal task by ID
   getPersonal: (taskId: string) =>
