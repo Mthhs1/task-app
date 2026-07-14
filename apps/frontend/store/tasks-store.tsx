@@ -11,7 +11,7 @@
 
 "use client"
 
-import { createContext, useContext, useMemo } from "react"
+import { createContext, useContext, useState } from "react"
 import { createStore, useStore } from "zustand"
 import type { ITask, TaskStatus, Priority, WsMessage } from "@meu-projeto/types"
 import { taskApi } from "@/lib/api"
@@ -273,7 +273,7 @@ type TasksStore = ReturnType<typeof createTasksStore>
 const TasksStoreContext = createContext<TasksStore | null>(null)
 
 export function TasksProvider({ children }: { children: React.ReactNode }) {
-  const store = useMemo(() => createTasksStore(), [])
+  const [store] = useState(() => createTasksStore())
 
   return (
     <TasksStoreContext.Provider value={store}>

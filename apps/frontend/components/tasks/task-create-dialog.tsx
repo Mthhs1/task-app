@@ -40,10 +40,11 @@ type TaskCreateDialogProps = {
     open: boolean
     onOpenChange: (open: boolean) => void
     task?: ITask
+    onEditComplete?: () => void
 }
 
 const formSchema = z.object({
-    title: z.string().min(3, "O título precisa ter pelo menos 3 caracteres"),
+    title: z.string().transform((v) => v.trim()).pipe(z.string().min(3, "O título precisa ter pelo menos 3 caracteres")),
     description: z.string(),
     priority: z.enum(["low", "medium", "high", "urgent"]),
     dueDate: z.date().optional(),
@@ -60,6 +61,7 @@ export function TaskCreateDialog({
     open,
     onOpenChange,
     task,
+    onEditComplete,
 }: TaskCreateDialogProps) {
     const addTask = useTasksStore((s) => s.addTask)
     const updateTask = useTasksStore((s) => s.updateTask)
@@ -125,28 +127,30 @@ export function TaskCreateDialog({
         }
 
         const payload = {
-            title: data.title.trim(),
+            title: data.title,
             description: data.description.trim() || null,
             priority: data.priority,
-            status: "todo" as const,
             dueDate,
             timeEstimateMinutes: data.timeEstimate
                 ? parseInt(data.timeEstimate, 10)
                 : null,
-            assigneeId: null,
-            milestoneId: null,
-            parentId: null,
-            orgId: null,
         }
 
         if (isUpdate && task) {
             await updateTask(task.id, payload)
+            onEditComplete?.()
         } else {
-            await addTask(payload)
+            await addTask({
+                ...payload,
+                status: "todo" as const,
+                assigneeId: null,
+                milestoneId: null,
+                parentId: null,
+                orgId: null,
+            })
+            reset()
+            onOpenChange(false)
         }
-
-        reset()
-        onOpenChange(false)
     }
 
     const priority = useWatch({ control, name: "priority" })

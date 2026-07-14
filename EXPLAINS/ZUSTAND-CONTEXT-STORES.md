@@ -30,9 +30,9 @@ In our current app, the logout flow does `router.push("/login")` which triggers 
 
 ---
 
-## The Solution: Context + useMemo
+## The Solution: Context + useState
 
-We refactored both stores to use React's **Context API** combined with `useMemo`. This ensures each user session gets its own store instance.
+We refactored both stores to use React's **Context API** combined with `useState` for initialization. This ensures each user session gets its own store instance.
 
 ### Step 1: What is React Context?
 
@@ -75,23 +75,19 @@ If you have two separate Providers, they create two separate pipes:
 
 This is the key: **each Provider instance creates an isolated scope**. When we wrap the store in a Provider, each user session gets its own isolated store.
 
-### Step 2: What is useMemo?
+### Step 2: What is useState for initialization?
 
-`useMemo` is a React hook that **memoizes** (caches) a value so it's only recomputed when its dependencies change.
+`useState` accepts an initializer function that runs **only once** when the component first mounts:
 
 ```tsx
-const value = useMemo(() => expensiveComputation(), [dep1, dep2])
+const [store] = useState(() => createStore())
 ```
 
-- On the **first render**, the function runs and the result is stored.
-- On **subsequent renders**, if `[dep1, dep2]` hasn't changed, React returns the cached value without re-running the function.
-- If any dependency changes, the function runs again and a new value is cached.
+- The initializer function runs on the **first render** and the result is stored as state.
+- On **subsequent renders**, React returns the same stored value — the initializer never runs again.
+- Unlike `useMemo`, `useState` **guarantees** the value won't be recomputed. React may discard memoized values under memory pressure, but state is stable for the lifetime of the component.
 
-When we use `useMemo(() => createStore(), [])` with an **empty dependency array** `[]`, it means:
-
-> "Create this store exactly once, when the component first mounts. Never recreate it unless the component unmounts and remounts."
-
-This is exactly what we want — one store per provider instance, stable across re-renders.
+This is exactly what we want — one store per provider instance, stable across re-renders and safe from React's memoization optimizations.
 
 ### Step 3: Putting it together — the new store pattern
 
@@ -101,7 +97,7 @@ Here's the full pattern for `auth-store`:
 // NEW — store/auth-store.tsx (simplified)
 "use client"
 
-import { createContext, useContext, useMemo } from "react"
+import { createContext, useContext, useState } from "react"
 import { createStore, useStore } from "zustand"
 
 // 1. Define the state shape (unchanged)
@@ -134,7 +130,7 @@ const AuthStoreContext = createContext<AuthStore | null>(null)
 
 // 4. Provider component — creates the store and puts it in the pipe
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const store = useMemo(() => createAuthStore(), [])
+  const [store] = useState(() => createAuthStore())
 
   return (
     <AuthStoreContext.Provider value={store}>
@@ -170,11 +166,11 @@ const useAuthStore = create(...)  function createAuthStore() {
 **Part 4 — Provider (`AuthProvider`)**
 
 This is a React component that:
-1. Calls `useMemo(() => createAuthStore(), [])` — creates the store once
+1. Calls `useState(() => createAuthStore())` — creates the store once, guaranteed stable
 2. Puts the store into the Context via `<AuthStoreContext.Provider value={store}>`
 3. Renders its children — any child can now access the store
 
-The `useMemo` with `[]` ensures the store is created **only once** per provider instance. Without `useMemo`, a new store would be created on every render, breaking the app.
+The `useState` initializer ensures the store is created **only once** per provider instance. Without it, a new store would be created on every render, breaking the app.
 
 **Part 5 — Selector hook (`useAuthStore`)**
 
@@ -401,7 +397,7 @@ useEffect(() => {
 
 | File | What changed |
 |---|---|
-| `store/auth-store.ts` → `.tsx` | Renamed (needs JSX for provider). Replaced `create()` with `createStore()` + `useMemo` + Context. |
+| `store/auth-store.ts` → `.tsx` | Renamed (needs JSX for provider). Replaced `create()` with `createStore()` + `useState` + Context. |
 | `store/tasks-store.ts` → `.tsx` | Same pattern. Updated `initWsSync` to accept store parameter. |
 | `components/providers.tsx` | Added `AuthProvider` and `TasksProvider` wrappers around children. |
 | `components/user-menu.tsx` | Changed from destructuring to selector pattern: `useAuthStore(s => s.user)`. |

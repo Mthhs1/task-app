@@ -47,18 +47,23 @@ function StatusBadge({ status }: { status: TaskStatus }) {
 export function TaskDetailContent({ task }: { task: ITask }) {
   const router = useRouter()
   const removeTask = useTasksStore((s) => s.removeTask)
+  const getTask = useTasksStore((s) => s.tasks.find((t) => t.id === task.id))
+  const [displayTask, setDisplayTask] = useState(task)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const resolvedTask = getTask ?? displayTask
 
   const timeLogged = 45
-  const timeRemaining = task.timeEstimateMinutes
-    ? task.timeEstimateMinutes - timeLogged
+  const timeRemaining = resolvedTask.timeEstimateMinutes
+    ? resolvedTask.timeEstimateMinutes - timeLogged
     : null
 
   async function handleDelete() {
     setDeleting(true)
-    await removeTask(task.id)
+    await removeTask(resolvedTask.id)
     setDeleting(false)
     setDeleteDialogOpen(false)
     router.push("/dashboard/tasks")
@@ -66,6 +71,13 @@ export function TaskDetailContent({ task }: { task: ITask }) {
 
   function onEditTask() {
     setEditDialogOpen(true)
+  }
+
+  function onEditComplete() {
+    setEditDialogOpen(false)
+    const updated = getTask
+    if (updated) setDisplayTask(updated)
+    setRefreshKey((k) => k + 1)
   }
 
   return (
@@ -78,9 +90,9 @@ export function TaskDetailContent({ task }: { task: ITask }) {
       <div>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{task.title}</h1>
-            {task.description && (
-              <p className="mt-2 text-muted-foreground">{task.description}</p>
+            <h1 className="text-2xl font-bold tracking-tight">{resolvedTask.title}</h1>
+            {resolvedTask.description && (
+              <p className="mt-2 text-muted-foreground">{resolvedTask.description}</p>
             )}
           </div>
 
@@ -119,8 +131,8 @@ export function TaskDetailContent({ task }: { task: ITask }) {
         </div>
 
         <div className="mt-3 flex items-center gap-2">
-          <PriorityBadge priority={task.priority} />
-          <StatusBadge status={task.status} />
+          <PriorityBadge priority={resolvedTask.priority} />
+          <StatusBadge status={resolvedTask.status} />
         </div>
       </div>
 
@@ -133,13 +145,13 @@ export function TaskDetailContent({ task }: { task: ITask }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {task.dueDate ? (
+            {resolvedTask.dueDate ? (
               <p className="text-sm">
-                {format(task.dueDate, "dd 'de' MMMM 'de' yyyy", {
+                {format(resolvedTask.dueDate, "dd 'de' MMMM 'de' yyyy", {
                   locale: ptBR,
                 })}
                 <span className="ml-2 text-xs text-muted-foreground">
-                  ({formatDistanceToNow(task.dueDate, { locale: ptBR, addSuffix: true })})
+                  ({formatDistanceToNow(resolvedTask.dueDate, { locale: ptBR, addSuffix: true })})
                 </span>
               </p>
             ) : (
@@ -156,11 +168,11 @@ export function TaskDetailContent({ task }: { task: ITask }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {task.timeEstimateMinutes ? (
+            {resolvedTask.timeEstimateMinutes ? (
               <div className="space-y-1">
                 <p className="text-sm">
-                  {Math.floor(task.timeEstimateMinutes / 60)}h{" "}
-                  {task.timeEstimateMinutes % 60}m
+                  {Math.floor(resolvedTask.timeEstimateMinutes / 60)}h{" "}
+                  {resolvedTask.timeEstimateMinutes % 60}m
                 </p>
                 {timeRemaining !== null && timeRemaining > 0 && (
                   <p className="text-xs text-muted-foreground">
@@ -184,13 +196,13 @@ export function TaskDetailContent({ task }: { task: ITask }) {
           <CardContent>
             <div className="flex items-center gap-2">
               <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-medium">
-                {task.title.charAt(0)}
+                {resolvedTask.title.charAt(0)}
               </div>
               <div>
                 <p className="text-sm font-medium">Usuário</p>
                 <p className="text-xs text-muted-foreground">
                   Criado em{" "}
-                  {format(task.createdAt, "dd 'de' MMM", { locale: ptBR })}
+                  {format(resolvedTask.createdAt, "dd 'de' MMM", { locale: ptBR })}
                 </p>
               </div>
             </div>
@@ -254,7 +266,7 @@ export function TaskDetailContent({ task }: { task: ITask }) {
               <div>
                 <p className="text-xs text-muted-foreground">Criado em</p>
                 <p className="text-sm">
-                  {format(task.createdAt, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
+                  {format(resolvedTask.createdAt, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
                     locale: ptBR,
                   })}
                 </p>
@@ -262,14 +274,14 @@ export function TaskDetailContent({ task }: { task: ITask }) {
               <div>
                 <p className="text-xs text-muted-foreground">Atualizado em</p>
                 <p className="text-sm">
-                  {format(task.updatedAt, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
+                  {format(resolvedTask.updatedAt, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
                     locale: ptBR,
                   })}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">ID</p>
-                <p className="text-sm font-mono">{task.id}</p>
+                <p className="text-sm font-mono">{resolvedTask.id}</p>
               </div>
             </CardContent>
           </Card>
@@ -277,9 +289,11 @@ export function TaskDetailContent({ task }: { task: ITask }) {
       </div>
 
       <TaskCreateDialog
+        key={refreshKey}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        task={task}
+        task={resolvedTask}
+        onEditComplete={onEditComplete}
       />
     </div>
   )

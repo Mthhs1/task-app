@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useMemo } from "react"
+import { createContext, useContext, useState } from "react"
 import { createStore, useStore } from "zustand"
 
 interface User {
@@ -62,7 +62,7 @@ type AuthStore = ReturnType<typeof createAuthStore>
 const AuthStoreContext = createContext<AuthStore | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const store = useMemo(() => createAuthStore(), [])
+  const [store] = useState(() => createAuthStore())
 
   return (
     <AuthStoreContext.Provider value={store}>

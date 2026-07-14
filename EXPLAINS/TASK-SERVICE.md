@@ -36,7 +36,7 @@ if (orgId) {
 
 2. **Dual-mode support**: The same service function handles both org tasks and personal tasks. The `whereClause` dynamically builds the right SQL constraint based on which mode is active.
 
-3. **Fail-safe by default**: If neither `orgId` nor `userId` is provided, the `whereClause` only contains `eq(tasks.id, taskId)`. The subsequent `findFirst` query returns `null` (task not found in the right scope), and the function throws or returns `false`.
+3. **Fail-safe concern**: If neither `orgId` nor `userId` is provided, the `whereClause` only contains `eq(tasks.id, taskId)`. This is **not** fail-safe — it will match any task by ID regardless of ownership. Callers must reject requests missing both `orgId` and `userId` before querying, or the query must use an impossible predicate (e.g., `eq(tasks.id, "impossible")`) in that case. The current code relies on the controller layer to always pass one or the other.
 
 ### How it flows from controller to service
 
@@ -107,7 +107,15 @@ Updates a task with optimistic scope validation:
 4. If found → applies only the fields that were provided in `data` (partial update)
 5. Auto-manages `completedAt`: sets timestamp when status changes to `"done"`, clears it when status changes away from `"done"`
 
-**Note**: The actual UPDATE query uses `eq(tasks.id, taskId)` instead of the full `whereClause`. This is a minor inconsistency — the scope check happens in step 2 (the `findFirst`), and if it passes, the update proceeds by ID. In a high-concurrency scenario, there's a tiny race window between the check and the update. For most apps this is fine, but a stricter implementation would use the `whereClause` in the UPDATE's WHERE clause too.
+**Note**: The actual UPDATE query uses `eq(tasks.id, taskId)` instead of the full `whereClause`. This is a security gap — the scope check happens in step 2 (the `findFirst`), and if it passes, the update proceeds by ID alone. In a high-concurrency scenario, there's a race window between the check and the update where the task's ownership could change. A stricter implementation would use the full `whereClause` in the UPDATE's WHERE clause:
+
+```typescript
+await db.update(tasks).set({ ...updateData, updatedAt: new Date() })
+  .where(and(...whereClause))  // not just eq(tasks.id, taskId)
+  .returning()
+```
+
+This ensures the UPDATE itself enforces authorization atomically, not just the preceding read.
 
 ### `deleteTask(taskId, orgId, userId)`
 

@@ -163,12 +163,27 @@ The List/Kanban tabs are visual-only for now — no functionality implemented ye
 
 **Type:** SSR (no `"use client"`)
 
-**What it does:** Server component for the `/dashboard/tasks/[taskId]` route.
+**What it does:** Server component for the `/dashboard/tasks/[taskId]` route. Fetches the task from the API at request time using the session cookie for authentication.
+
+**`getTask(taskId)` function:**
+- Reads the session cookie (`better-auth.session_token` in dev, `__Secure-better-auth.session_token` in prod) from `next/headers`
+- Forwards only this single cookie to `taskApi.getPersonal(taskId)` — no other cookies are sent
+- **Error handling:**
+  - `404` → returns `null` (renders "not found" UI)
+  - `401` → throws `"Unauthorized"` (caught by page, calls `notFound()`)
+  - `status === 0` → throws `"Request timed out"` (propagates as error)
+  - Any other status → throws `"Server error: <status>"` (propagates as error)
+
+**Rendering logic:**
+- If `getTask` returns `null` → renders "Tarefa não encontrada" with a link back to `/dashboard/tasks`
+- If `getTask` throws `"Unauthorized"` → calls `notFound()`
+- Any other error → re-throws (Next.js error boundary handles it)
+- On success → passes the task as a prop to `<TaskDetailContent task={task} />`
 
 **Returns:**
 ```tsx
 <PageHeader title="Detalhes da Tarefa" />
-<TaskDetailContent />
+<TaskDetailContent task={task} />
 ```
 
 ---
@@ -177,11 +192,28 @@ The List/Kanban tabs are visual-only for now — no functionality implemented ye
 
 **Type:** CSR (`"use client"`)
 
-**What it does:** Full task detail view with all information sections.
+**What it does:** Full task detail view with all information sections, edit/delete capabilities, and store-based edit synchronization.
+
+**Data resolution pattern (`resolvedTask`):**
+- Receives the initial task as a server prop
+- Also reads the task from the Zustand store via `useTasksStore((s) => s.tasks.find((t) => t.id === task.id))`
+- Uses `resolvedTask = getTask ?? displayTask` — if the store has an updated version (after an edit), it takes precedence; otherwise falls back to the server prop
+- This ensures edits are reflected immediately without needing a full page reload
+
+**State:**
+- `displayTask` — stores the current task data, updated after edits complete
+- `deleteDialogOpen` / `editDialogOpen` — dialog visibility
+- `deleting` — loading state for delete operation
+- `refreshKey` — incremented after edits to force `TaskCreateDialog` re-render
+
+**Actions:**
+- `handleDelete()` — calls `removeTask(id)` from the store, then navigates back to `/dashboard/tasks`
+- `onEditTask()` — opens the edit dialog
+- `onEditComplete()` — reads the updated task from the store, updates `displayTask`, and increments `refreshKey` to force dialog re-mount
 
 **Layout:**
 1. **"Voltar" button** — links back to `/dashboard/tasks`
-2. **Title + Description + Priority/Status badges** — header section
+2. **Title + Description + Priority/Status badges** — header section with a dropdown menu for Edit/Delete actions
 3. **3-column card grid** (responsive `md:grid-cols-3`):
    - **Prazo** — formatted date with relative time, or "Sem prazo definido"
    - **Tempo estimado** — estimate + remaining time calculation, or "Sem estimativa"
@@ -194,12 +226,52 @@ The List/Kanban tabs are visual-only for now — no functionality implemented ye
    - **Right (1/3 width):**
      - **Registros de tempo** card (placeholder)
      - **Informações** card — created at, updated at, task ID
+6. **`TaskCreateDialog`** — edit dialog, re-mounted via `key={refreshKey}` after successful edits to pick up updated task data
 
-**Currently uses mock data** (`MOCK_TASK` single task) — will be replaced with API fetch in later steps.
+**All displayed fields use `resolvedTask`** (title, description, priority, status, due date, time estimate, dates, ID) so they refresh automatically when the store has a newer version after an edit.
 
 ---
 
-## 10. `components/page-header.tsx` — Dynamic Page Header
+## 10. `components/tasks/task-create-dialog.tsx` — Task Create/Edit Dialog
+
+**Type:** CSR (`"use client"`)
+
+**What it does:** Dual-purpose dialog for creating new tasks and editing existing ones. Uses `react-hook-form` with Zod validation.
+
+**Props:**
+- `open: boolean` — controls dialog visibility
+- `onOpenChange: (open: boolean) => void` — called when dialog opens/closes
+- `task?: ITask` — if provided, the dialog is in edit mode for this task
+- `onEditComplete?: () => void` — called after a successful edit (not used for create)
+
+**Form schema (Zod):**
+- `title` — trimmed before validation, minimum 3 characters (whitespace-only fails)
+- `description` — optional string, trimmed before submission
+- `priority` — enum: `"low"`, `"medium"`, `"high"`, `"urgent"`
+- `dueDate` — optional date
+- `dueTime` — optional time string (e.g., `"08:00"`)
+- `timeEstimate` — optional numeric string (minutes)
+
+**Create vs Edit behavior:**
+- **Create mode** (no `task` prop): Sends `title`, `description`, `priority`, `dueDate`, `timeEstimateMinutes` plus defaults (`status: "todo"`, `assigneeId: null`, `milestoneId: null`, `parentId: null`, `orgId: null`) to `addTask()`
+- **Edit mode** (`task` provided): Sends only editable fields (`title`, `description`, `priority`, `dueDate`, `timeEstimateMinutes`) to `updateTask()` — preserves existing `status`, `assigneeId`, `milestoneId`, `parentId`, `orgId`
+- On edit success, calls `onEditComplete?.()` to notify the parent component
+
+**Form initialization:**
+- On open with a `task`: populates all fields from the task data (including parsing `dueDate` into separate date and time values)
+- On open without a `task`: resets to default values
+- On close: resets the form
+
+**Layout:**
+1. **Title** — "Editar tarefa" or "Nova tarefa"
+2. **Description** — textarea
+3. **Priority** (select) + **Prazo** (date picker + time input) — side by side
+4. **Tempo estimado** — number input (minutes)
+5. **Footer** — Cancelar + Submit button ("Criar tarefa" / "Salvar alteracoes")
+
+---
+
+## 11. `components/page-header.tsx` — Dynamic Page Header
 
 **Type:** SSR (no `"use client"`)
 
@@ -217,7 +289,7 @@ Title ................................ Notifications • User • Logout
 
 ---
 
-## 11. `components/notification-badge.tsx` — Notification Bell
+## 12. `components/notification-badge.tsx` — Notification Bell
 
 **Type:** CSR (`"use client"`)
 
@@ -229,7 +301,7 @@ Title ................................ Notifications • User • Logout
 
 ---
 
-## 12. `components/user-menu.tsx` — User Info + Logout
+## 13. `components/user-menu.tsx` — User Info + Logout
 
 **Type:** CSR (`"use client"`)
 
@@ -272,6 +344,18 @@ Title ................................ Notifications • User • Logout
 
 **Note:** The title is currently hardcoded as "Dashboard" — the per-page title is handled by `PageHeader` which appears below this header.
 
+### `app/dashboard/tasks/[taskId]/page.tsx` — Server-side task fetch
+
+**What changed:** Replaced mock data with server-side API fetch via `taskApi.getPersonal()`. Forwards only the session cookie to the API. Handles 404 (not found UI), 401 (notFound), and other errors (throw).
+
+### `app/dashboard/tasks/[taskId]/task-detail-content.tsx` — Store-based edit sync
+
+**What changed:** Replaced mock data with server-prop task. Added `resolvedTask` pattern that reads from the Zustand store after edits to reflect changes without page reload. Added edit/delete dropdown menu, `TaskCreateDialog` for editing, and `AlertDialog` for deletion confirmation.
+
+### `components/tasks/task-create-dialog.tsx` — Create/Edit dialog
+
+**What changed:** New component (or updated from previous task-dialog). Dual-purpose for creating and editing tasks. Uses react-hook-form with Zod validation. Edit mode sends only editable fields, preserving status/assignee/milestone/parent/org.
+
 ---
 
 ## Route Structure
@@ -279,7 +363,7 @@ Title ................................ Notifications • User • Logout
 ```
 /dashboard                          → PageHeader "Dashboard" + DashboardContent (minhas tarefas)
 /dashboard/tasks                    → PageHeader "Tarefas" + TasksContent
-/dashboard/tasks/[taskId]           → PageHeader "Detalhes da Tarefa" + TaskDetailContent
+/dashboard/tasks/[taskId]           → PageHeader "Detalhes da Tarefa" + TaskDetailContent (SSR fetch + CSR edit sync)
 ```
 
 ---
@@ -294,17 +378,41 @@ User clicks task card in list/grid
         → TaskDialog opens with quick preview
           → User clicks "Ver detalhes completos"
             → Next.js navigates to /dashboard/tasks/[taskId]
-              → TaskDetailContent renders full detail page
+              → Server component fetches task via taskApi.getPersonal() with session cookie
+              → TaskDetailContent renders full detail page with server-fetched task
+
+Edit flow:
+  → User clicks "Editar tarefa" in dropdown menu
+    → TaskCreateDialog opens in edit mode (pre-filled with task data)
+    → User submits changes
+      → updateTask() sends only editable fields to API (optimistic store update)
+      → onEditComplete() reads updated task from store
+      → displayTask is updated, refreshKey increments
+      → All fields using resolvedTask reflect the new data immediately
+
+Delete flow:
+  → User clicks "Excluir tarefa" in dropdown menu
+    → AlertDialog confirms
+    → removeTask() deletes from store and API
+    → Navigates back to /dashboard/tasks
 ```
 
 ---
 
 ## Key Design Decisions
 
-1. **Server/Client split:** Page files (`page.tsx`) are SSR and compose `<PageHeader>` (SSR) + `<*Content>` (CSR). This keeps the title dynamic per page without requiring the entire page to be client-side.
+1. **Server/Client split:** Page files (`page.tsx`) are SSR and compose `<PageHeader>` (SSR) + `<*Content>` (CSR). The task detail page fetches data server-side with the session cookie, then passes it as a prop to the client component.
 
-2. **Dialog vs Route:** Dialog for quick preview (title, description, priority, time), dedicated route for full details (comments, subtasks, time entries, metadata). This avoids a mostly-empty page for simple tasks while providing a full workspace when needed.
+2. **Hybrid data resolution in task detail:** The client component receives the task as a server prop but also reads from the Zustand store. After an edit, the store has the updated version (from optimistic update reconciliation), so `resolvedTask = storeTask ?? serverProp` ensures the UI reflects changes without a full reload.
 
-3. **Layout as SSR:** The dashboard layout no longer handles auth — `middleware.ts` does it server-side. This means the layout shell (sidebar + header) is rendered on the server, reducing client JS.
+3. **Dialog vs Route:** Dialog for quick preview (title, description, priority, time), dedicated route for full details (comments, subtasks, time entries, metadata). This avoids a mostly-empty page for simple tasks while providing a full workspace when needed.
 
-4. **Mock data:** All content components use hardcoded `MOCK_TASKS`/`MOCK_TASK` arrays. These will be replaced with API calls (`taskApi.listPersonal()`, `taskApi.get()`) once the backend is connected.
+4. **Layout as SSR:** The dashboard layout no longer handles auth — `middleware.ts` does it server-side. This means the layout shell (sidebar + header) is rendered on the server, reducing client JS.
+
+5. **Edit payload scoping:** When editing a task, only editable fields (`title`, `description`, `priority`, `dueDate`, `timeEstimateMinutes`) are sent to the API. Fields like `status`, `assigneeId`, `milestoneId`, `parentId`, and `orgId` are preserved server-side and not overwritten by the edit form.
+
+6. **Title validation:** The title field is trimmed before Zod's minimum-length check, so whitespace-only input (e.g., `"   "`) fails validation and the submitted value is already clean.
+
+7. **Cookie forwarding:** The server component forwards only the session cookie (`better-auth.session_token` or `__Secure-better-auth.session_token`) to the API — no other frontend cookies are sent.
+
+8. **Error handling in SSR fetch:** Different HTTP statuses are handled differently — 404 shows a "not found" UI, 401 triggers `notFound()`, and other errors (timeouts, server errors) are thrown to Next.js's error boundary.

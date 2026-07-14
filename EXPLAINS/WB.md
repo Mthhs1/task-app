@@ -251,9 +251,11 @@ ws.onclose = (event) => {
 |---|---|
 | `1000` | Normal closure |
 | `1001` | Going away (page closed, server shutting down) |
-| `1006` | Abnormal closure (no close frame received — usually network drop) |
+| `1006` | Abnormal closure (no close frame received — usually network drop). **Receive-only** — must not be passed to `close()`. |
 | `1011` | Internal server error |
-| `4000-4999` | Available for application-defined codes |
+| `3000-4999` | Available for application-defined codes. Valid for both `close()` and received in `onclose`. |
+
+Valid codes for `ws.close(code)` are `1000` and `3000–4999`. Code `1006` is reserved for the browser to report abnormal closures and cannot be sent by the application.
 
 ### `addEventListener` alternative
 
@@ -356,6 +358,11 @@ The `ws` library reassembles fragments automatically. You just see the full mess
 Ping frames are keep-alive probes. When one side sends a ping, the other **must** respond with a pong. The browser handles pongs automatically, but on the server you can send custom pings:
 
 ```javascript
+wss.on("connection", (ws) => {
+  ws.isAlive = true;
+  ws.on("pong", () => { ws.isAlive = true });
+});
+
 setInterval(() => {
   wss.clients.forEach((ws) => {
     if (!ws.isAlive) return ws.terminate();
@@ -377,7 +384,7 @@ The browser `WebSocket` constructor only accepts a URL. You **cannot set custom 
 
 | Approach | How | Pros | Cons |
 |---|---|---|---|
-| **Cookie** | Set `credentials: { origin: [...] }` on server; browser sends cookies with upgrade request | Same security as HTTP; clean | Requires cookie-based auth |
+| **Cookie** | Browsers automatically include applicable cookies in the WebSocket upgrade request. The server validates the upgrade using the cookies and `Origin` header. Requires `SameSite=None; Secure` for cross-site scenarios, with the cookie's `domain` and `path` matching the WebSocket URL. | Same security as HTTP; clean | Requires cookie-based auth; cross-site needs `SameSite=None; Secure` |
 | **Query param** | `ws://localhost/ws?token=abc123` | Simple | Token visible in server logs, proxy logs, browser history |
 | **Protocol header** | `new WebSocket(url, ["auth", token])` — sent as `Sec-WebSocket-Protocol` | Not in URL | Hacky; pollutes the protocol negotiation |
 
@@ -663,7 +670,9 @@ redis.on("message", (channel, message) => {
   // Deliver to local clients
   for (const [socket, info] of clients) {
     if (info.orgIds.includes(orgId)) {
-      socket.send(JSON.stringify({ type, payload: data, orgId }));
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type, payload: data, orgId }));
+      }
     }
   }
 });
@@ -671,13 +680,15 @@ redis.on("message", (channel, message) => {
 
 ### Sticky sessions
 
-If you're behind a load balancer (nginx, HAProxy, AWS ALB), WebSocket upgrades require **sticky sessions** — the load balancer must route all subsequent frames to the same server that received the initial upgrade.
+Once a WebSocket connection is established, the TCP pipe is bound to the specific server that accepted the upgrade. All subsequent frames on that connection go to that server — no load-balancer routing is needed for ongoing communication.
 
-nginx config example:
+Sticky sessions are only required for **reconnect affinity**: when a client drops and reconnects, you may want it to land on the same server (e.g., if that server holds in-memory state about the client's subscriptions). They may also be needed for other stateful application behavior unrelated to the WebSocket itself.
+
+If you need sticky sessions for reconnects, configure your load balancer accordingly:
 
 ```nginx
 upstream websocket_backend {
-  ip_hash;  # Route same IP to same server
+  ip_hash;  # Route same IP to same server (for reconnect affinity)
   server backend1:3001;
   server backend2:3001;
 }
@@ -689,6 +700,8 @@ location /ws {
   proxy_set_header Connection "upgrade";
 }
 ```
+
+For fully stateless WebSocket servers (all state in Redis), sticky sessions are not needed at all — clients can reconnect to any server.
 
 ---
 
@@ -883,12 +896,13 @@ socket.on("close", () => {
 
 ### 7. Not listening to errors
 
-While `<system-reminder>` tags are metadata during our conversation, `socket.on("error")` is your only signal that the socket died due to a network failure (no close frame came across):
+`socket.on("error")` is your only signal that the socket died due to a network failure (no close frame came across). Always register this handler to log failures and trigger cleanup:
 
 ```javascript
 socket.on("error", (err) => {
   console.error("Socket error:", err.message);
-  // The socket will close shortly after
+  // The socket will close shortly after — onclose will fire next
+  // Use this to log diagnostic info before the connection is gone
 });
 ```
 
@@ -921,7 +935,7 @@ Optimizations: Use `Buffer.allocUnsafe(…)` for sending, avoid large JSON paylo
 WebSockets can transmit thousands of messages per second. The bottleneck is usually **bus delivery**, not the protocol. Testing shows the raw processing overhead per message is ~100–500 µs:
 
 ```
-1,000 messages/sec × 83 ms CPU time = 8.3% CPU overhead
+1,000 messages/sec × 83 µs CPU time = 8.3% CPU overhead
 ```
 
 ### Do You Need WebSockets?
