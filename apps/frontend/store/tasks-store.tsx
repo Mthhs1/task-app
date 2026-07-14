@@ -186,6 +186,8 @@ function createTasksStore() {
     updateTask: async (id, data) => {
       const { activeGroupId } = get();
 
+      const previousTasks = [...(get().tasks || [])];
+
       set((state) => ({
         tasks: (state.tasks || []).map((t) =>
           t.id === id ? { ...t, ...data, updatedAt: new Date() } : t,
@@ -199,7 +201,7 @@ function createTasksStore() {
         : await taskApi.updatePersonal(id, body);
 
       if (result.error) {
-        set({ error: result.error.message });
+        set({ tasks: previousTasks, error: result.error.message });
         return;
       }
 
@@ -214,6 +216,8 @@ function createTasksStore() {
     removeTask: async (id) => {
       const { activeGroupId } = get();
 
+      const previousTasks = [...(get().tasks || [])];
+
       set((state) => ({
         tasks: (state.tasks || []).filter((t) => t.id !== id),
       }));
@@ -223,7 +227,7 @@ function createTasksStore() {
         : await taskApi.deletePersonal(id);
 
       if (result.error) {
-        set({ error: result.error.message });
+        set({ tasks: previousTasks, error: result.error.message });
       }
     },
 

@@ -1,6 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Calendar, Clock, User, MessageSquare, ListTodo, Timer, MoreVertical, Pencil, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,28 +13,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import { STATUS_CONFIG } from "@/lib/constants"
 import { PriorityBadge } from "@/components/tasks/task-shared"
+import { TaskCreateDialog } from "@/components/tasks/task-create-dialog"
+import { useTasksStore } from "@/store/tasks-store"
 import type { ITask, TaskStatus } from "@meu-projeto/types"
 import { formatDistanceToNow, format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-
-const MOCK_TASK: ITask = {
-  id: "1",
-  title: "Criar wireframes do dashboard",
-  description: "Desenhar os wireframes iniciais para o layout do dashboard principal, incluindo sidebar, header e área de conteúdo. Considerar responsividade para mobile.",
-  status: "in_progress",
-  priority: "high",
-  dueDate: new Date("2026-07-10"),
-  timeEstimateMinutes: 120,
-  assigneeId: null,
-  milestoneId: null,
-  parentId: null,
-  orgId: null,
-  createdAt: new Date("2026-07-01"),
-  updatedAt: new Date("2026-07-03"),
-}
 
 function StatusBadge({ status }: { status: TaskStatus }) {
   const config = STATUS_CONFIG[status]
@@ -46,13 +44,29 @@ function StatusBadge({ status }: { status: TaskStatus }) {
   )
 }
 
-export function TaskDetailContent() {
-  const task = MOCK_TASK
+export function TaskDetailContent({ task }: { task: ITask }) {
+  const router = useRouter()
+  const removeTask = useTasksStore((s) => s.removeTask)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const timeLogged = 45
   const timeRemaining = task.timeEstimateMinutes
     ? task.timeEstimateMinutes - timeLogged
     : null
+
+  async function handleDelete() {
+    setDeleting(true)
+    await removeTask(task.id)
+    setDeleting(false)
+    setDeleteDialogOpen(false)
+    router.push("/dashboard/tasks")
+  }
+
+  function onEditTask() {
+    setEditDialogOpen(true)
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -75,16 +89,33 @@ export function TaskDetailContent() {
               <MoreVertical className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuItem>  
+              <DropdownMenuItem onClick={() => onEditTask()}>
                 <Pencil className="mr-2 size-4" />
                 Editar tarefa
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
                 <Trash2 className="mr-2 size-4" />
                 Excluir tarefa
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir tarefa?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Essa ação não pode ser desfeita. A tarefa será permanentemente removida.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} disabled={deleting}>
+                  {deleting ? "Excluindo..." : "Excluir"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <div className="mt-3 flex items-center gap-2">
@@ -244,6 +275,12 @@ export function TaskDetailContent() {
           </Card>
         </div>
       </div>
+
+      <TaskCreateDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        task={task}
+      />
     </div>
   )
 }
