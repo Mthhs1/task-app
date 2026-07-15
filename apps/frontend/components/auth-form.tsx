@@ -44,7 +44,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         formState: { errors, isSubmitting },
     } = useForm<FormData>({
         resolver: zodResolver(schema) as unknown as Resolver<FormData>,
-        defaultValues: { name: "", email: "", password: "" },
+        defaultValues: { name: "", username: "", email: "", password: "" },
     })
 
     async function onSubmit(data: FormData) {
@@ -124,6 +124,21 @@ export function AuthForm({ mode }: AuthFormProps) {
                                     />
                                     {errors.name && (
                                         <FieldError errors={[errors.name]} />
+                                    )}
+                                </Field>
+                            )}
+
+                            {!isLogin && (
+                                <Field data-invalid={!!errors.username}>
+                                    <FieldLabel htmlFor="username">Nome de usuário</FieldLabel>
+                                    <Input
+                                        id="username"
+                                        {...register("username")}
+                                        aria-invalid={!!errors.username}
+                                        placeholder="john-doe"
+                                    />
+                                    {errors.username && (
+                                        <FieldError errors={[errors.username]} />
                                     )}
                                 </Field>
                             )}

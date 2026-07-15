@@ -50,6 +50,11 @@ interface TasksState {
   // refetch (see setFilters action).
   filters: TaskFilters;
 
+  // syncing: true while waiting for initialTasks to be hydrated from
+  // server-side props. Used to show a "Sincronizando..." placeholder
+  // and avoid flashing an empty UI on first client render.
+  syncing: boolean;
+
   // loading: true while a fetchTasks() request is in flight. Components
   // use this to show skeleton/spinner placeholders.
   loading: boolean;
@@ -72,6 +77,10 @@ interface TasksState {
   // setFilters: updates the filter state and triggers a refetch.
   // Replaces ALL filters (not a merge) — pass the complete desired state.
   setFilters: (filters: TaskFilters) => void;
+
+  // initializeTasks: hydrates the store with server-fetched tasks.
+  // Called once on client mount when tasks were already fetched server-side.
+  initializeTasks: (tasks: ITask[]) => void;
 
   // fetchTasks: fetches tasks from the server using the current groupId
   // and filters. Sets loading/error state appropriately.
@@ -109,6 +118,7 @@ function createTasksStore() {
     // --- INITIAL STATE -------------------------------------------------------
     tasks: [],          // No tasks loaded yet
     filters: {},        // No filters applied
+    syncing: true,      // Waiting for initialTasks hydration from server props
     loading: false,     // Not fetching (fetch is triggered explicitly)
     error: null,        // No error
     activeGroupId: null, // Personal task mode by default
@@ -148,6 +158,10 @@ function createTasksStore() {
       set({ tasks: result.data.tasks ?? [], loading: false, error: null });
     },
 
+    initializeTasks: (tasks) => {
+      set({ tasks, syncing: false, loading: false, error: null });
+    },
+
     // --------------------------------------------------------------------------
     // addTask — Creates a task with optimistic update
     // --------------------------------------------------------------------------
@@ -161,7 +175,7 @@ function createTasksStore() {
         updatedAt: new Date(),
       } as ITask;
 
-      set((state) => ({ tasks: [optimisticTask, ...(state.tasks || [])] }));
+      set((state) => ({ tasks: [optimisticTask, ...(state.tasks || [])], loading: true }));
 
       const result = activeGroupId
         ? await taskApi.createOrg(activeGroupId, data)
@@ -171,12 +185,14 @@ function createTasksStore() {
         set((state) => ({
           tasks: (state.tasks || []).filter((t) => t.id !== optimisticTask.id),
           error: result.error.message,
+          loading: false,
         }));
         return;
       }
 
       set((state) => ({
         tasks: (state.tasks || []).map((t) => (t.id === optimisticTask.id ? result.data : t)),
+        loading: false,
       }));
     },
 
@@ -192,6 +208,7 @@ function createTasksStore() {
         tasks: (state.tasks || []).map((t) =>
           t.id === id ? { ...t, ...data, updatedAt: new Date() } : t,
         ),
+        loading: true,
       }));
 
       const body = { ...data, id };
@@ -201,12 +218,13 @@ function createTasksStore() {
         : await taskApi.updatePersonal(id, body);
 
       if (result.error) {
-        set({ tasks: previousTasks, error: result.error.message });
+        set({ tasks: previousTasks, error: result.error.message, loading: false });
         return;
       }
 
       set((state) => ({
         tasks: (state.tasks || []).map((t) => (t.id === id ? result.data : t)),
+        loading: false,
       }));
     },
 
@@ -220,6 +238,7 @@ function createTasksStore() {
 
       set((state) => ({
         tasks: (state.tasks || []).filter((t) => t.id !== id),
+        loading: true,
       }));
 
       const result = activeGroupId
@@ -227,7 +246,9 @@ function createTasksStore() {
         : await taskApi.deletePersonal(id);
 
       if (result.error) {
-        set({ tasks: previousTasks, error: result.error.message });
+        set({ tasks: previousTasks, error: result.error.message, loading: false });
+      } else {
+        set({ loading: false });
       }
     },
 

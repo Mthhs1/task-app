@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { PRIORITY_ORDER } from "@/lib/constants"
 import { useTasksStore } from "@/store/tasks-store"
 import type { ITask } from "@meu-projeto/types"
 
-export function useTaskBoard() {
+export function useTaskBoard(initialTasks?: ITask[]) {
   const [activeTab, setActiveTab] = useState<string>("all")
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
   const [selectedTask, setSelectedTask] = useState<ITask | null>(null)
@@ -13,13 +13,19 @@ export function useTaskBoard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const tasks = useTasksStore((s) => s.tasks)
+  const syncing = useTasksStore((s) => s.syncing)
   const loading = useTasksStore((s) => s.loading)
   const error = useTasksStore((s) => s.error)
-  const fetchTasks = useTasksStore((s) => s.fetchTasks)
+  const initializeTasks = useTasksStore((s) => s.initializeTasks)
+
+  const initialized = useRef(false)
 
   useEffect(() => {
-    fetchTasks()
-  }, [fetchTasks])
+    if (initialTasks && !initialized.current) {
+      initializeTasks(initialTasks)
+      initialized.current = true
+    }
+  }, [initialTasks, initializeTasks])
 
   const safeTasks = Array.isArray(tasks) ? tasks : []
   const filteredTasks =
@@ -52,6 +58,7 @@ export function useTaskBoard() {
     handleTaskClick,
     createDialogOpen,
     setCreateDialogOpen,
+    syncing,
     loading,
     error,
   }

@@ -3,12 +3,18 @@
 import { List, Grid, Plus } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { TaskList } from "@/components/tasks/task-list"
 import { TaskDialog } from "@/components/tasks/task-dialog"
 import { TaskCreateDialog } from "@/components/tasks/task-create-dialog"
 import { useTaskBoard } from "@/hooks/use-task-board"
+import type { ITask } from "@meu-projeto/types"
 
-export function TasksContent() {
+interface TasksContentProps {
+  initialTasks: ITask[]
+}
+
+export function TasksContent({ initialTasks }: TasksContentProps) {
   const {
     activeTab,
     setActiveTab,
@@ -21,8 +27,9 @@ export function TasksContent() {
     handleTaskClick,
     createDialogOpen,
     setCreateDialogOpen,
+    syncing,
     loading,
-  } = useTaskBoard()
+  } = useTaskBoard(initialTasks)
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -76,7 +83,12 @@ export function TasksContent() {
         </div>
       </div>
 
-      {loading ? (
+      {syncing ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
+          <Skeleton className="h-4 w-48" />
+          <p className="text-sm text-muted-foreground">Sincronizando tarefas...</p>
+        </div>
+      ) : loading ? (
         <p className="text-center text-sm text-muted-foreground py-8">
           Carregando tarefas...
         </p>

@@ -3,6 +3,8 @@ import cors from "@fastify/cors";
 import { env } from "./env.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { taskRoutes } from "./routes/tasks.routes.js";
+import { organizationRoutes } from "./routes/organization.routes.js";
+import { userRoutes } from "./routes/user.routes.js";
 
 const app = Fastify({ logger: true });
 
@@ -17,6 +19,8 @@ async function start() {
 
   await app.register(authRoutes);
   await app.register(taskRoutes);
+  await app.register(organizationRoutes);
+  await app.register(userRoutes);
 
   try {
     await app.listen({ port: env.PORT, host: "0.0.0.0" });

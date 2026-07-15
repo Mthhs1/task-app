@@ -232,8 +232,8 @@ export const taskApi = {
     apiPatch<ITask, TaskReorderInput>(`/api/groups/${groupId}/tasks/${taskId}/reorder`, body),
 
   // List personal tasks (not tied to any org) with same filters
-  listPersonal: (query?: TaskListQuery) =>
-    apiGet<{ tasks: ITask[]; total: number }>("/api/tasks", { query: query as Record<string, string> }),
+  listPersonal: (query?: TaskListQuery, options?: { headers?: Record<string, string> }) =>
+    apiGet<{ tasks: ITask[]; total: number }>("/api/tasks", { query: query as Record<string, string>, headers: options?.headers }),
 
   // Get a personal task by ID
   getPersonal: (taskId: string, options?: { headers?: Record<string, string> }) =>

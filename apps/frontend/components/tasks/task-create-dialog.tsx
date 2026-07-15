@@ -225,7 +225,9 @@ export function TaskCreateDialog({
                                 }
                             >
                                 <SelectTrigger>
-                                    <SelectValue />
+                                    <SelectValue>
+                                        {PRIORITY_CONFIG[priority as Priority]?.label}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {(

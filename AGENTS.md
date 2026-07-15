@@ -1,3 +1,8 @@
+## Critical Rules
+
+- English Only
+- Never Changes a Shadcn Component on the Frontend
+
 ## Behavioral Guidelines and Code Responses
 
 Whenever you are asked to write, modify, or refactor code, you must NOT simply generate the code immediately. You should act as a senior developer and follow this thought process before responding:
