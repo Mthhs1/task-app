@@ -44,13 +44,14 @@ export async function signUpEmail(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
-    const { name, email, password } = request.body as {
+    const { name, username, email, password } = request.body as {
         name: string
+        username: string
         email: string
         password: string
     }
     const res = await auth.api.signUpEmail({
-        body: { name, email, password },
+        body: { name, username, email, password },
         headers: fromNodeHeaders(request.headers),
         asResponse: true,
     })

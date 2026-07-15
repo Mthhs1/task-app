@@ -274,11 +274,25 @@ export type SignInInput = z.infer<typeof signInSchema>;
 
 export const signUpSchema = z.object({
   name: z.string().min(2, 'O nome precisa ter pelo menos 2 letras'),
+  username: z.string().min(3, 'O nome de usuário precisa ter pelo menos 3 caracteres').max(20, 'O nome de usuário pode ter no máximo 20 caracteres').regex(/^[a-z0-9_-]+$/, 'O nome de usuário pode conter apenas letras minúsculas, números, _ e -'),
   email: z.email('E-mail inválido'),
   password: z.string().min(6, 'A senha precisa ter pelo menos 6 caracteres'),
 });
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
+
+export const inviteByUsernameSchema = z.object({
+  username: z.string().min(1, 'O nome de usuário é obrigatório'),
+  role: z.string().default('member'),
+});
+
+export type InviteByUsernameInput = z.infer<typeof inviteByUsernameSchema>;
+
+export const updateUsernameSchema = z.object({
+  username: z.string().min(3, 'O nome de usuário precisa ter pelo menos 3 caracteres').max(20, 'O nome de usuário pode ter no máximo 20 caracteres').regex(/^[a-z0-9_-]+$/, 'O nome de usuário pode conter apenas letras minúsculas, números, _ e -'),
+});
+
+export type UpdateUsernameInput = z.infer<typeof updateUsernameSchema>;
 
 // ============================================================================
 // Query / filter helpers

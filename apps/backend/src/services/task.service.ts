@@ -254,7 +254,7 @@ export async function updateTask(
   const [updated] = await db
     .update(tasks)
     .set({ ...updateData, updatedAt: new Date() })
-    .where(eq(tasks.id, taskId))
+    .where(and(...whereClause))
     .returning();
 
   return mapDbTaskToSchema(updated);
@@ -276,7 +276,7 @@ export async function deleteTask(taskId: string, orgId: string | null, userId: s
     return false;
   }
 
-  await db.delete(tasks).where(eq(tasks.id, taskId));
+  await db.delete(tasks).where(and(...whereClause));
   return true;
 }
 

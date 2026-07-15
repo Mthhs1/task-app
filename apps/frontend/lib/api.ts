@@ -109,15 +109,22 @@ async function request<T>(
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    // Build headers — only set Content-Type when there's a body
+    const hasBody = options.body !== undefined && options.body !== null;
+    const extraHeaders = options.headers as Record<string, string> | undefined;
+    const headers: Record<string, string> = {
+      ...extraHeaders,
+    };
+    if (hasBody) {
+      headers["Content-Type"] = "application/json";
+    }
+
     // Construct the full URL: API_URL + path (e.g., http://localhost:3001/api/tasks)
     const res = await fetch(`${API_URL}${path}`, {
       ...options, // method, body, etc. from the caller
       signal: controller.signal, // enables timeout cancellation
       credentials: "include", // send session cookie (critical for auth)
-      headers: {
-        "Content-Type": "application/json", // all bodies are JSON
-        ...options.headers, // allow caller to override headers if needed
-      },
+      headers,
     });
 
     // Clear the timeout — the request completed before the deadline.
@@ -167,9 +174,9 @@ async function request<T>(
 
 // apiGet: appends query params as ?key=value&key2=value2 (URLSearchParams
 // handles encoding). If no query is provided, the path is used as-is.
-export async function apiGet<T>(path: string, query?: Record<string, string>) {
-  const qs = query ? `?${new URLSearchParams(query).toString()}` : "";
-  return request<T>(`${path}${qs}`, { method: "GET" });
+export async function apiGet<T>(path: string, options?: { query?: Record<string, string>; headers?: Record<string, string> }) {
+  const qs = options?.query ? `?${new URLSearchParams(options.query).toString()}` : "";
+  return request<T>(`${path}${qs}`, { method: "GET", headers: options?.headers });
 }
 
 // apiPost: serializes the body to JSON and sends as POST.
@@ -202,7 +209,7 @@ export async function apiDelete<T>(path: string) {
 export const taskApi = {
   // List org tasks with filters (status, priority, assignee, tag, milestone, search)
   listOrg: (groupId: string, query?: TaskListQuery) =>
-    apiGet<ITask[]>(`/api/groups/${groupId}/tasks`, query as Record<string, string>),
+    apiGet<{ tasks: ITask[]; total: number }>(`/api/groups/${groupId}/tasks`, { query: query as Record<string, string> }),
 
   // Get a single task with relations (subtasks, tags, time entries, comments count)
   getOrg: (groupId: string, taskId: string) =>
@@ -225,12 +232,12 @@ export const taskApi = {
     apiPatch<ITask, TaskReorderInput>(`/api/groups/${groupId}/tasks/${taskId}/reorder`, body),
 
   // List personal tasks (not tied to any org) with same filters
-  listPersonal: (query?: TaskListQuery) =>
-    apiGet<ITask[]>("/api/tasks", query as Record<string, string>),
+  listPersonal: (query?: TaskListQuery, options?: { headers?: Record<string, string> }) =>
+    apiGet<{ tasks: ITask[]; total: number }>("/api/tasks", { query: query as Record<string, string>, headers: options?.headers }),
 
   // Get a personal task by ID
-  getPersonal: (taskId: string) =>
-    apiGet<ITask>(`/api/tasks/${taskId}`),
+  getPersonal: (taskId: string, options?: { headers?: Record<string, string> }) =>
+    apiGet<ITask>(`/api/tasks/${taskId}`, { headers: options?.headers }),
 
   // Create a personal task
   createPersonal: (body: CreateTaskInput) =>

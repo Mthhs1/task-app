@@ -1,6 +1,6 @@
 import { cookies } from "next/headers"
 import { PageHeader } from "@/components/page-header"
-import { DashboardContent } from "./dashboard-content"
+import { TasksContent } from "./tasks-content"
 import { taskApi } from "@/lib/api"
 import type { ITask } from "@meu-projeto/types"
 
@@ -28,13 +28,13 @@ async function getTasks(): Promise<ITask[]> {
   return result.data.tasks ?? []
 }
 
-export default async function DashboardPage() {
+export default async function TasksPage() {
   const tasks = await getTasks()
 
   return (
     <>
-      <PageHeader title="Dashboard" />
-      <DashboardContent initialTasks={tasks} />
+      <PageHeader title="Tarefas" />
+      <TasksContent initialTasks={tasks} />
     </>
   )
 }
